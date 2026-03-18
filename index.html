@@ -47,100 +47,100 @@
         <button id="reset-score-btn" class="icon-btn" title="スコアリセット">リセット</button>
       </div>
 
-      <div class="quiz-body">
-        <!-- タイマー -->
-        <div id="timer-bar-container">
-          <div id="timer-bar"></div>
-        </div>
+      <!-- タイマー -->
+      <div id="timer-bar-container">
+        <div id="timer-bar"></div>
+      </div>
 
-        <!-- あなたの情報 + プログラム -->
-        <div id="scenario-info">
-          <div class="info-row">
-            <div class="info-card" id="info-role">
-              <div class="info-label">あなた</div>
-              <div class="info-value">MT</div>
-            </div>
-            <div class="info-card" id="info-glitch">
-              <div class="info-label">プログラム</div>
-              <div class="info-value">近</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- PT全員のプレステ一覧 -->
-        <div id="party-list">
-          <div class="party-row">
-            <div class="party-group">
-              <div class="group-title">左組</div>
-              <div class="party-member" data-role="H1">
-                <span class="member-role">H1</span>
-                <span class="member-symbol" data-symbol="○">○</span>
+      <div class="quiz-layout">
+        <!-- 左カラム: 問題 -->
+        <div class="quiz-main">
+          <!-- あなたの情報 + プログラム -->
+          <div id="scenario-info">
+            <div class="info-row">
+              <div class="info-card" id="info-role">
+                <div class="info-label">あなた</div>
+                <div class="info-value">MT</div>
               </div>
-              <div class="party-member" data-role="MT">
-                <span class="member-role">MT</span>
-                <span class="member-symbol" data-symbol="×">×</span>
-              </div>
-              <div class="party-member" data-role="D1">
-                <span class="member-role">D1</span>
-                <span class="member-symbol" data-symbol="△">△</span>
-              </div>
-              <div class="party-member" data-role="D3">
-                <span class="member-role">D3</span>
-                <span class="member-symbol" data-symbol="□">□</span>
-              </div>
-            </div>
-            <div class="party-group">
-              <div class="group-title">右組</div>
-              <div class="party-member" data-role="H2">
-                <span class="member-role">H2</span>
-                <span class="member-symbol" data-symbol="○">○</span>
-              </div>
-              <div class="party-member" data-role="ST">
-                <span class="member-role">ST</span>
-                <span class="member-symbol" data-symbol="×">×</span>
-              </div>
-              <div class="party-member" data-role="D2">
-                <span class="member-role">D2</span>
-                <span class="member-symbol" data-symbol="△">△</span>
-              </div>
-              <div class="party-member" data-role="D4">
-                <span class="member-role">D4</span>
-                <span class="member-symbol" data-symbol="□">□</span>
+              <div class="info-card" id="info-glitch">
+                <div class="info-label">プログラム</div>
+                <div class="info-value">近</div>
               </div>
             </div>
           </div>
+
+          <!-- PT全員のプレステ一覧 -->
+          <div id="party-list">
+            <div class="party-row">
+              <div class="party-group">
+                <div class="group-title">左組</div>
+                <div class="party-member" data-role="H1">
+                  <span class="member-role">H1</span>
+                  <span class="member-symbol" data-symbol="○">○</span>
+                </div>
+                <div class="party-member" data-role="MT">
+                  <span class="member-role">MT</span>
+                  <span class="member-symbol" data-symbol="×">×</span>
+                </div>
+                <div class="party-member" data-role="D1">
+                  <span class="member-role">D1</span>
+                  <span class="member-symbol" data-symbol="△">△</span>
+                </div>
+                <div class="party-member" data-role="D3">
+                  <span class="member-role">D3</span>
+                  <span class="member-symbol" data-symbol="□">□</span>
+                </div>
+              </div>
+              <div class="party-group">
+                <div class="group-title">右組</div>
+                <div class="party-member" data-role="H2">
+                  <span class="member-role">H2</span>
+                  <span class="member-symbol" data-symbol="○">○</span>
+                </div>
+                <div class="party-member" data-role="ST">
+                  <span class="member-role">ST</span>
+                  <span class="member-symbol" data-symbol="×">×</span>
+                </div>
+                <div class="party-member" data-role="D2">
+                  <span class="member-role">D2</span>
+                  <span class="member-symbol" data-symbol="△">△</span>
+                </div>
+                <div class="party-member" data-role="D4">
+                  <span class="member-role">D4</span>
+                  <span class="member-symbol" data-symbol="□">□</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- アリーナ -->
+          <div id="arena-container">
+            <svg id="arena" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="200" cy="200" r="180" class="arena-floor"/>
+              <text x="200" y="28" class="cardinal" id="cardinal-n">N</text>
+              <text x="380" y="205" class="cardinal" id="cardinal-e">E</text>
+              <text x="200" y="392" class="cardinal" id="cardinal-s">S</text>
+              <text x="20" y="205" class="cardinal" id="cardinal-w">W</text>
+              <g id="omega-m-marker" class="boss-marker">
+                <circle r="18" class="boss-circle"/>
+                <text class="boss-text" text-anchor="middle" dominant-baseline="central">M</text>
+              </g>
+              <g id="omega-f-marker" class="boss-marker" transform="translate(200,200)">
+                <circle r="14" class="boss-circle-f"/>
+                <text class="boss-text-f" text-anchor="middle" dominant-baseline="central">F</text>
+              </g>
+              <g id="positions"></g>
+            </svg>
+          </div>
         </div>
 
-        <!-- アリーナ -->
-        <div id="arena-container">
-          <svg id="arena" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-            <!-- 背景の円（アリーナ） -->
-            <circle cx="200" cy="200" r="180" class="arena-floor"/>
-            <!-- 方角マーカー -->
-            <text x="200" y="28" class="cardinal" id="cardinal-n">N</text>
-            <text x="380" y="205" class="cardinal" id="cardinal-e">E</text>
-            <text x="200" y="392" class="cardinal" id="cardinal-s">S</text>
-            <text x="20" y="205" class="cardinal" id="cardinal-w">W</text>
-            <!-- オメガM表示 -->
-            <g id="omega-m-marker" class="boss-marker">
-              <circle r="18" class="boss-circle"/>
-              <text class="boss-text" text-anchor="middle" dominant-baseline="central">M</text>
-            </g>
-            <!-- 中央のオメガF -->
-            <g id="omega-f-marker" class="boss-marker" transform="translate(200,200)">
-              <circle r="14" class="boss-circle-f"/>
-              <text class="boss-text-f" text-anchor="middle" dominant-baseline="central">F</text>
-            </g>
-            <!-- クリック可能なポジション（8個） -->
-            <g id="positions"></g>
-          </svg>
-        </div>
-
-        <!-- フィードバック -->
-        <div id="feedback" class="hidden">
-          <div id="feedback-result"></div>
-          <div id="feedback-explanation"></div>
-          <button id="next-btn">次の問題</button>
+        <!-- 右カラム: フィードバック -->
+        <div class="quiz-side">
+          <div id="feedback" class="hidden">
+            <div id="feedback-result"></div>
+            <div id="feedback-explanation"></div>
+            <button id="next-btn">次の問題</button>
+          </div>
         </div>
       </div>
     </div>
