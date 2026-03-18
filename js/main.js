@@ -46,29 +46,31 @@ function showScreen(name) {
 }
 
 // ========================================
+// Utilities
+// ========================================
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ========================================
 // Position geometry
 // ========================================
 
-// 8つのポジションをオメガMの方角に基づいて配置
-// オメガMが北のとき:
-//   左列(West側) L0~L3: 上から下
-//   右列(East側) R0~R3: 上から下
 function calcPositions(mDirection) {
   const cx = 200,
     cy = 200;
-
-  // オメガMからの角度オフセット
   const dirAngles = { N: -90, E: 0, S: 90, W: 180 };
   const baseAngle = dirAngles[mDirection];
-
-  // 左列・右列の角度（M基準で左右に展開）
-  // Mが北のとき: 左=西側, 右=東側
-  // 各列4ポジション、Mに近い方から遠い方へ
   const positions = [];
   const radius = 130;
-
-  // 左列: Mから反時計回り方向に 30°, 55°, 80°, 105° (微調整可)
   const offsets = [30, 58, 86, 114];
+
+  // 左列: Mから反時計回り
   for (let i = 0; i < 4; i++) {
     const angle = ((baseAngle - offsets[i]) * Math.PI) / 180;
     positions.push({
@@ -80,7 +82,7 @@ function calcPositions(mDirection) {
     });
   }
 
-  // 右列: Mから時計回り方向に 30°, 55°, 80°, 105°
+  // 右列: Mから時計回り
   for (let i = 0; i < 4; i++) {
     const angle = ((baseAngle + offsets[i]) * Math.PI) / 180;
     positions.push({
@@ -95,7 +97,6 @@ function calcPositions(mDirection) {
   return positions;
 }
 
-// オメガMの位置座標
 function calcOmegaMPos(direction) {
   const cx = 200,
     cy = 200,
@@ -108,55 +109,120 @@ function calcOmegaMPos(direction) {
 // ========================================
 // Scenario generation
 // ========================================
+
+// 全8人のプレステマーカーをランダム配分
+function generatePartySymbols() {
+  // ○○××△△□□ をシャッフルして8ロールに割り当て
+  const symbols = shuffle([...SYMBOLS, ...SYMBOLS]);
+  const party = {};
+  ROLES.forEach((role, i) => {
+    party[role] = symbols[i];
+  });
+  return party;
+}
+
 function generateScenario() {
-  const role = ROLES[Math.floor(Math.random() * ROLES.length)];
-  const symbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+  const playerRole = ROLES[Math.floor(Math.random() * ROLES.length)];
   const glitch = GLITCH_TYPES[Math.floor(Math.random() * 2)];
   const mDir = CARDINALS[Math.floor(Math.random() * CARDINALS.length)];
+  const party = generatePartySymbols();
 
-  // 正解の算出
-  const side = LEFT_GROUP.includes(role) ? "left" : "right";
+  const playerSymbol = party[playerRole];
+  const side = LEFT_GROUP.includes(playerRole) ? "left" : "right";
+
+  // 正解ポジションの算出
   let posIndex;
   if (glitch === "mid") {
-    posIndex = MID_ORDER[symbol];
+    posIndex = MID_ORDER[playerSymbol];
   } else {
     posIndex =
-      side === "left" ? FAR_ORDER_LEFT[symbol] : FAR_ORDER_RIGHT[symbol];
+      side === "left"
+        ? FAR_ORDER_LEFT[playerSymbol]
+        : FAR_ORDER_RIGHT[playerSymbol];
   }
 
   const correctId = `${side === "left" ? "L" : "R"}${posIndex}`;
 
-  return { role, symbol, glitch, mDir, side, posIndex, correctId };
+  // 全員のポジションも算出（回答後の表示用）
+  const allAssignments = {};
+  ROLES.forEach((role) => {
+    const s = LEFT_GROUP.includes(role) ? "left" : "right";
+    let idx;
+    if (glitch === "mid") {
+      idx = MID_ORDER[party[role]];
+    } else {
+      idx =
+        s === "left"
+          ? FAR_ORDER_LEFT[party[role]]
+          : FAR_ORDER_RIGHT[party[role]];
+    }
+    const posId = `${s === "left" ? "L" : "R"}${idx}`;
+    if (!allAssignments[posId]) {
+      allAssignments[posId] = [];
+    }
+    allAssignments[posId].push(role);
+  });
+
+  return {
+    playerRole,
+    glitch,
+    mDir,
+    party,
+    playerSymbol,
+    side,
+    posIndex,
+    correctId,
+    allAssignments,
+  };
 }
 
 // ========================================
 // Rendering
 // ========================================
+
+function renderPartyList(scenario) {
+  const { party, playerRole } = scenario;
+
+  // 左組
+  LEFT_GROUP.forEach((role) => {
+    const el = $(`.party-member[data-role="${role}"]`);
+    el.querySelector(".member-symbol").textContent = party[role];
+    el.classList.toggle("is-you", role === playerRole);
+  });
+
+  // 右組
+  RIGHT_GROUP.forEach((role) => {
+    const el = $(`.party-member[data-role="${role}"]`);
+    el.querySelector(".member-symbol").textContent = party[role];
+    el.classList.toggle("is-you", role === playerRole);
+  });
+}
+
 function renderScenario(scenario) {
   // Info cards
-  const roleCard = $("#info-role");
-  roleCard.querySelector(".info-value").textContent = scenario.role;
+  $("#info-role .info-value").textContent = scenario.playerRole;
 
   const glitchCard = $("#info-glitch");
   glitchCard.querySelector(".info-value").textContent =
     scenario.glitch === "mid" ? "ミドル（近）" : "ファー（遠）";
   glitchCard.className = `info-card ${scenario.glitch}`;
 
-  const symbolCard = $("#info-symbol");
-  symbolCard.querySelector(".info-value").textContent = scenario.symbol;
+  $("#info-symbol .info-value").textContent = scenario.playerSymbol;
+
+  // Party list
+  renderPartyList(scenario);
 
   // OmegaM position
   const mPos = calcOmegaMPos(scenario.mDir);
-  const mMarker = $("#omega-m-marker");
-  mMarker.setAttribute("transform", `translate(${mPos.x},${mPos.y})`);
+  $("#omega-m-marker").setAttribute(
+    "transform",
+    `translate(${mPos.x},${mPos.y})`
+  );
 
   // Position markers
   const positions = calcPositions(scenario.mDir);
   const posGroup = $("#positions");
   posGroup.innerHTML = "";
-
-  // ラベルデータ: 各ポジションに配置されるロールを算出
-  const roleAssignments = calcAllRoleAssignments(scenario);
 
   positions.forEach((pos) => {
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -171,7 +237,6 @@ function renderScenario(scenario) {
     circle.setAttribute("cx", pos.x);
     circle.setAttribute("cy", pos.y);
 
-    // ポジション番号ラベル
     const label = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "text"
@@ -189,8 +254,8 @@ function renderScenario(scenario) {
     roleLabel.classList.add("pos-role-label");
     roleLabel.setAttribute("x", pos.x);
     roleLabel.setAttribute("y", pos.y + 30);
-    const assignedRole = roleAssignments[pos.id];
-    roleLabel.textContent = assignedRole || "";
+    const assigned = scenario.allAssignments[pos.id];
+    roleLabel.textContent = assigned ? assigned.join("/") : "";
 
     g.appendChild(circle);
     g.appendChild(label);
@@ -203,18 +268,6 @@ function renderScenario(scenario) {
   // Hide feedback
   $("#feedback").classList.add("hidden");
   state.answered = false;
-}
-
-// 全ロールのポジション割り当てを算出
-function calcAllRoleAssignments(scenario) {
-  const assignments = {};
-
-  // 実際のシナリオでは他のプレイヤーのデバフはランダムだが、
-  // 表示用にはプレイヤーの正解位置だけ示す（他は省略）
-  // ここではプレイヤーのロールだけ正解位置にマッピング
-  assignments[scenario.correctId] = scenario.role;
-
-  return assignments;
 }
 
 function renderScore() {
@@ -238,7 +291,7 @@ function handleAnswer(selectedId) {
 
   // Mark positions
   $$(".position-marker").forEach((g) => {
-    g.classList.add("disabled");
+    g.classList.add("disabled", "reveal");
     const id = g.dataset.posId;
     if (id === selectedId && isCorrect) {
       g.classList.add("correct");
@@ -248,8 +301,6 @@ function handleAnswer(selectedId) {
     if (id === scenario.correctId && !isCorrect) {
       g.classList.add("answer");
     }
-    // Reveal role labels
-    g.classList.add("reveal");
   });
 
   // Feedback
@@ -260,21 +311,15 @@ function handleAnswer(selectedId) {
   result.textContent = isCorrect ? "正解！" : "不正解…";
   result.className = isCorrect ? "correct" : "incorrect";
 
-  const explanation = $("#feedback-explanation");
   const sideName = scenario.side === "left" ? "左組" : "右組";
-  const glitchName = scenario.glitch === "mid" ? "ミドル（近）" : "ファー（遠）";
-  const symbolPositions =
-    scenario.glitch === "mid"
-      ? "○×△□"
-      : scenario.side === "left"
-        ? "○×△□"
-        : "□△×○（右組調整）";
+  const glitchName =
+    scenario.glitch === "mid" ? "ミドル（近）" : "ファー（遠）";
 
-  explanation.innerHTML = `
-    <strong>${scenario.role}</strong> は <strong>${sideName}</strong><br>
-    ${glitchName} / ${scenario.symbol} → 上から ${scenario.posIndex + 1}番目<br>
+  $("#feedback-explanation").innerHTML = `
+    <strong>${scenario.playerRole}</strong> は <strong>${sideName}</strong> / ${scenario.playerSymbol}<br>
+    ${glitchName} → 上から ${scenario.posIndex + 1}番目<br>
     <span style="color:var(--text-secondary);font-size:0.8rem">
-      ${scenario.glitch === "far" && scenario.side === "right" ? "ファー右組は □△×○ の順（調整）" : `${glitchName}の並び: ○×△□`}
+      ${scenario.glitch === "far" && scenario.side === "right" ? "ファー右組は □△×○ の順（調整）" : "並び: ○×△□"}
     </span>
   `;
 }
@@ -283,7 +328,6 @@ function handleAnswer(selectedId) {
 // Event listeners
 // ========================================
 function init() {
-  // Mechanic select
   $$(".mechanic-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       showScreen("quiz");
@@ -291,20 +335,15 @@ function init() {
     });
   });
 
-  // Back button
   $("#back-btn").addEventListener("click", () => showScreen("menu"));
-
-  // Next question
   $("#next-btn").addEventListener("click", startNewQuestion);
 
-  // Reset score
   $("#reset-score-btn").addEventListener("click", () => {
     state.correct = 0;
     state.total = 0;
     renderScore();
   });
 
-  // Keyboard shortcut
   document.addEventListener("keydown", (e) => {
     if (state.screen === "quiz" && state.answered && e.key === "Enter") {
       startNewQuestion();

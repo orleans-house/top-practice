@@ -363,3 +363,54 @@ header h1 {
   dominant-baseline: central;
   opacity: 0.6;
 }
+
+/* Party list */
+#party-list {
+  margin-bottom: 16px;
+}
+
+.party-row {
+  display: flex;
+  gap: 8px;
+}
+
+.party-group {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.group-title {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.party-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.party-member.is-you {
+  background: rgba(88, 166, 255, 0.15);
+  border: 1px solid var(--accent);
+}
+
+.member-role {
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.member-symbol {
+  color: var(--symbol-color);
+  font-size: 1.1rem;
+  font-weight: bold;
+}
