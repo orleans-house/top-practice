@@ -5,24 +5,36 @@
 }
 
 :root {
-  --bg-primary: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-card: #21262d;
-  --border: #30363d;
-  --text-primary: #e6edf3;
-  --text-secondary: #8b949e;
-  --accent: #58a6ff;
-  --correct: #3fb950;
-  --incorrect: #f85149;
-  --symbol-color: #ffa657;
-  --mid-color: #79c0ff;
-  --far-color: #d2a8ff;
+  /* Base */
+  --bg-primary: #0D0D0D;
+  --bg-secondary: #1A1A2E;
+  --bg-card: #16213E;
+  --bg-input: #2C2C2C;
+  --border: #1E2D3D;
+  --hover: #2A1B3D;
+
+  /* Text */
+  --text-primary: #E0E0E0;
+  --text-secondary: #8A8A8A;
+  --text-tertiary: #B0A99F;
+
+  /* Accent */
+  --accent: #4A7C7E;
+  --accent-gold: #8B7D3C;
+  --accent-danger: #6B3A3A;
+
+  /* Semantic */
+  --correct: #4A7C7E;
+  --incorrect: #6B3A3A;
+  --symbol-color: #8B7D3C;
+  --mid-color: #4A7C7E;
+  --far-color: #8B7D3C;
 
   /* プレステ記号ごとの色 */
-  --sym-circle: #ff6070;   /* ○ 赤 */
-  --sym-cross: #60c0ff;    /* × 青 */
-  --sym-triangle: #50e080; /* △ 緑 */
-  --sym-square: #e080ff;   /* □ 紫 */
+  --sym-circle: #C45050;   /* ○ 赤（落ち着いた赤） */
+  --sym-cross: #5088B0;    /* × 青（落ち着いた青） */
+  --sym-triangle: #4A8860; /* △ 緑（落ち着いた緑） */
+  --sym-square: #7858A0;   /* □ 紫（落ち着いた紫） */
 }
 
 body {
@@ -101,7 +113,7 @@ header h1 {
 }
 
 .role-btn.selected {
-  background: rgba(88, 166, 255, 0.2);
+  background: rgba(74, 124, 126, 0.25);
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -294,7 +306,7 @@ header h1 {
 }
 
 .arena-floor {
-  fill: #1a1f2e;
+  fill: #12121F;
   stroke: var(--border);
   stroke-width: 2;
 }
@@ -307,25 +319,25 @@ header h1 {
 }
 
 .boss-circle {
-  fill: #3b2e1a;
-  stroke: #f0a040;
+  fill: #2A2210;
+  stroke: var(--accent-gold);
   stroke-width: 2;
 }
 
 .boss-text {
-  fill: #f0a040;
+  fill: var(--accent-gold);
   font-size: 16px;
   font-weight: bold;
 }
 
 .boss-circle-f {
-  fill: #1a2e3b;
-  stroke: #60a0f0;
+  fill: #1A2530;
+  stroke: var(--accent);
   stroke-width: 2;
 }
 
 .boss-text-f {
-  fill: #60a0f0;
+  fill: var(--accent);
   font-size: 14px;
   font-weight: bold;
 }
@@ -357,7 +369,7 @@ header h1 {
 
 /* Position marker states after answer */
 .position-marker.correct .pos-circle {
-  fill: #1a3a1a;
+  fill: #1A2E2E;
   stroke: var(--correct);
   stroke-width: 3;
 }
@@ -367,7 +379,7 @@ header h1 {
 }
 
 .position-marker.incorrect .pos-circle {
-  fill: #3a1a1a;
+  fill: #2E1A1A;
   stroke: var(--incorrect);
   stroke-width: 3;
 }
@@ -377,7 +389,7 @@ header h1 {
 }
 
 .position-marker.answer .pos-circle {
-  fill: #1a2a1a;
+  fill: #1A2E2E;
   stroke: var(--correct);
   stroke-width: 3;
   stroke-dasharray: 4 2;
@@ -513,7 +525,7 @@ header h1 {
 }
 
 .party-member.is-you {
-  background: rgba(88, 166, 255, 0.15);
+  background: rgba(74, 124, 126, 0.2);
   outline: 1px solid var(--accent);
 }
 
