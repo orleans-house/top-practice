@@ -137,19 +137,11 @@ function createSymbolSVG(symbol, size = 20) {
 // Position geometry (M北固定)
 // ========================================
 
-// glitch: "mid" or "far"
-// ミドル: レーザー（M→中央の直線）を挟んでギリギリ近くに並ぶ
-// ファー: ペアから最大距離を取るため左右に大きく開く
-function calcPositions(glitch) {
-  const cx = 200,
-    cy = 200;
-
-  // Mは北固定。レーザーは北→南の縦線。
-  // xOffset: レーザー線からの左右の距離
-  // yPositions: 上(Mに近い)から下(Mから遠い)の4段
-  const xSpread = glitch === "mid" ? 30 : 110;
-  const yStart = 60;   // 最上段のY
-  const yGap = 70;     // 各段の間隔
+function calcPositions() {
+  const cx = 200;
+  const xSpread = 70;
+  const yStart = 60;
+  const yGap = 70;
 
   const positions = [];
 
@@ -320,7 +312,7 @@ function renderScenario(scenario) {
   );
 
   // Position markers
-  const positions = calcPositions(scenario.glitch);
+  const positions = calcPositions();
   const posGroup = $("#positions");
   posGroup.innerHTML = "";
 
