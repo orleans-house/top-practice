@@ -537,15 +537,16 @@ header h1 {
 }
 
 .member-symbol {
-  font-size: 1.3rem;
-  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
 }
 
-/* 記号ごとの色分け */
-.member-symbol[data-symbol="○"] { color: var(--sym-circle); }
-.member-symbol[data-symbol="×"] { color: var(--sym-cross); }
-.member-symbol[data-symbol="△"] { color: var(--sym-triangle); }
-.member-symbol[data-symbol="□"] { color: var(--sym-square); }
+.symbol-icon {
+  display: block;
+}
 
 /* ========================================
    Responsive: mobile stacks vertically

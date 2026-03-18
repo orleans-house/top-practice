@@ -63,6 +63,77 @@ function shuffle(arr) {
 }
 
 // ========================================
+// Symbol SVG rendering (統一サイズ)
+// ========================================
+const SYMBOL_COLORS = {
+  "○": "var(--sym-circle)",
+  "×": "var(--sym-cross)",
+  "△": "var(--sym-triangle)",
+  "□": "var(--sym-square)",
+};
+
+function createSymbolSVG(symbol, size = 20) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", size);
+  svg.setAttribute("height", size);
+  svg.classList.add("symbol-icon");
+
+  const color = SYMBOL_COLORS[symbol] || "var(--text-primary)";
+  let shape;
+
+  switch (symbol) {
+    case "○":
+      shape = document.createElementNS(ns, "circle");
+      shape.setAttribute("cx", "12");
+      shape.setAttribute("cy", "12");
+      shape.setAttribute("r", "9");
+      shape.setAttribute("fill", "none");
+      shape.setAttribute("stroke", color);
+      shape.setAttribute("stroke-width", "2.5");
+      break;
+    case "×":
+      shape = document.createElementNS(ns, "g");
+      const l1 = document.createElementNS(ns, "line");
+      l1.setAttribute("x1", "4"); l1.setAttribute("y1", "4");
+      l1.setAttribute("x2", "20"); l1.setAttribute("y2", "20");
+      l1.setAttribute("stroke", color); l1.setAttribute("stroke-width", "2.5");
+      l1.setAttribute("stroke-linecap", "round");
+      const l2 = document.createElementNS(ns, "line");
+      l2.setAttribute("x1", "20"); l2.setAttribute("y1", "4");
+      l2.setAttribute("x2", "4"); l2.setAttribute("y2", "20");
+      l2.setAttribute("stroke", color); l2.setAttribute("stroke-width", "2.5");
+      l2.setAttribute("stroke-linecap", "round");
+      shape.appendChild(l1);
+      shape.appendChild(l2);
+      break;
+    case "△":
+      shape = document.createElementNS(ns, "polygon");
+      shape.setAttribute("points", "12,2 22,21 2,21");
+      shape.setAttribute("fill", "none");
+      shape.setAttribute("stroke", color);
+      shape.setAttribute("stroke-width", "2.5");
+      shape.setAttribute("stroke-linejoin", "round");
+      break;
+    case "□":
+      shape = document.createElementNS(ns, "rect");
+      shape.setAttribute("x", "3");
+      shape.setAttribute("y", "3");
+      shape.setAttribute("width", "18");
+      shape.setAttribute("height", "18");
+      shape.setAttribute("rx", "1");
+      shape.setAttribute("fill", "none");
+      shape.setAttribute("stroke", color);
+      shape.setAttribute("stroke-width", "2.5");
+      break;
+  }
+
+  svg.appendChild(shape);
+  return svg;
+}
+
+// ========================================
 // Position geometry (M北固定)
 // ========================================
 
@@ -217,7 +288,9 @@ function renderPartyList(scenario) {
     const el = $(`.party-member[data-role="${role}"]`);
     const symEl = el.querySelector(".member-symbol");
     const sym = party[role];
-    symEl.textContent = sym;
+    // テキストをSVGアイコンに置換
+    symEl.innerHTML = "";
+    symEl.appendChild(createSymbolSVG(sym, 22));
     symEl.dataset.symbol = sym;
     el.classList.toggle("is-you", role === playerRole);
   });
