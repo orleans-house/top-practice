@@ -52,11 +52,62 @@ header h1 {
 }
 
 /* Menu screen */
+/* Role select */
+.role-select {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.role-select-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.role-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.role-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 6px 14px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.role-btn:hover {
+  border-color: var(--accent);
+}
+
+.role-btn.selected {
+  background: rgba(88, 166, 255, 0.2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 #menu-screen h2 {
   font-size: 1rem;
   color: var(--text-secondary);
   margin-bottom: 16px;
   text-align: center;
+}
+
+.mechanic-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mechanic-btn:disabled:hover {
+  border-color: var(--border);
 }
 
 .mechanic-list {

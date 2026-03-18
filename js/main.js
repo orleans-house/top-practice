@@ -5,7 +5,6 @@
 const ROLES = ["MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4"];
 const SYMBOLS = ["○", "×", "△", "□"];
 const GLITCH_TYPES = ["mid", "far"];
-const CARDINALS = ["N", "E", "S", "W"];
 
 const LEFT_GROUP = ["H1", "MT", "D1", "D3"];
 const RIGHT_GROUP = ["H2", "ST", "D2", "D4"];
@@ -19,11 +18,15 @@ const MID_ORDER = { "○": 0, "×": 1, "△": 2, "□": 3 };
 const FAR_ORDER_LEFT = { "○": 0, "×": 1, "△": 2, "□": 3 };
 const FAR_ORDER_RIGHT = { "○": 3, "×": 2, "△": 1, "□": 0 };
 
+// M方角は北固定
+const M_DIRECTION = "N";
+
 // ========================================
 // State
 // ========================================
 let state = {
   screen: "menu",
+  playerRole: null, // メニューで選択、以後固定
   correct: 0,
   total: 0,
   scenario: null,
@@ -58,19 +61,18 @@ function shuffle(arr) {
 }
 
 // ========================================
-// Position geometry
+// Position geometry (M北固定)
 // ========================================
 
-function calcPositions(mDirection) {
+function calcPositions() {
   const cx = 200,
     cy = 200;
-  const dirAngles = { N: -90, E: 0, S: 90, W: 180 };
-  const baseAngle = dirAngles[mDirection];
+  const baseAngle = -90; // 北
   const positions = [];
   const radius = 130;
   const offsets = [30, 58, 86, 114];
 
-  // 左列: Mから反時計回り
+  // 左列: Mから反時計回り（西側）
   for (let i = 0; i < 4; i++) {
     const angle = ((baseAngle - offsets[i]) * Math.PI) / 180;
     positions.push({
@@ -82,7 +84,7 @@ function calcPositions(mDirection) {
     });
   }
 
-  // 右列: Mから時計回り
+  // 右列: Mから時計回り（東側）
   for (let i = 0; i < 4; i++) {
     const angle = ((baseAngle + offsets[i]) * Math.PI) / 180;
     positions.push({
@@ -97,22 +99,11 @@ function calcPositions(mDirection) {
   return positions;
 }
 
-function calcOmegaMPos(direction) {
-  const cx = 200,
-    cy = 200,
-    r = 160;
-  const angles = { N: -90, E: 0, S: 90, W: 180 };
-  const a = (angles[direction] * Math.PI) / 180;
-  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-}
-
 // ========================================
 // Scenario generation
 // ========================================
 
-// 全8人のプレステマーカーをランダム配分
 function generatePartySymbols() {
-  // ○○××△△□□ をシャッフルして8ロールに割り当て
   const symbols = shuffle([...SYMBOLS, ...SYMBOLS]);
   const party = {};
   ROLES.forEach((role, i) => {
@@ -122,15 +113,13 @@ function generatePartySymbols() {
 }
 
 function generateScenario() {
-  const playerRole = ROLES[Math.floor(Math.random() * ROLES.length)];
+  const playerRole = state.playerRole;
   const glitch = GLITCH_TYPES[Math.floor(Math.random() * 2)];
-  const mDir = CARDINALS[Math.floor(Math.random() * CARDINALS.length)];
   const party = generatePartySymbols();
 
   const playerSymbol = party[playerRole];
   const side = LEFT_GROUP.includes(playerRole) ? "left" : "right";
 
-  // 正解ポジションの算出
   let posIndex;
   if (glitch === "mid") {
     posIndex = MID_ORDER[playerSymbol];
@@ -143,7 +132,7 @@ function generateScenario() {
 
   const correctId = `${side === "left" ? "L" : "R"}${posIndex}`;
 
-  // 全員のポジションも算出（回答後の表示用）
+  // 全員のポジション算出（回答後の表示用）
   const allAssignments = {};
   ROLES.forEach((role) => {
     const s = LEFT_GROUP.includes(role) ? "left" : "right";
@@ -166,7 +155,6 @@ function generateScenario() {
   return {
     playerRole,
     glitch,
-    mDir,
     party,
     playerSymbol,
     side,
@@ -183,15 +171,7 @@ function generateScenario() {
 function renderPartyList(scenario) {
   const { party, playerRole } = scenario;
 
-  // 左組
-  LEFT_GROUP.forEach((role) => {
-    const el = $(`.party-member[data-role="${role}"]`);
-    el.querySelector(".member-symbol").textContent = party[role];
-    el.classList.toggle("is-you", role === playerRole);
-  });
-
-  // 右組
-  RIGHT_GROUP.forEach((role) => {
+  [...LEFT_GROUP, ...RIGHT_GROUP].forEach((role) => {
     const el = $(`.party-member[data-role="${role}"]`);
     el.querySelector(".member-symbol").textContent = party[role];
     el.classList.toggle("is-you", role === playerRole);
@@ -212,15 +192,15 @@ function renderScenario(scenario) {
   // Party list
   renderPartyList(scenario);
 
-  // OmegaM position
-  const mPos = calcOmegaMPos(scenario.mDir);
+  // OmegaM（北固定）
+  const mPos = { x: 200, y: 40 };
   $("#omega-m-marker").setAttribute(
     "transform",
     `translate(${mPos.x},${mPos.y})`
   );
 
   // Position markers
-  const positions = calcPositions(scenario.mDir);
+  const positions = calcPositions();
   const posGroup = $("#positions");
   posGroup.innerHTML = "";
 
@@ -289,7 +269,6 @@ function handleAnswer(selectedId) {
 
   renderScore();
 
-  // Mark positions
   $$(".position-marker").forEach((g) => {
     g.classList.add("disabled", "reveal");
     const id = g.dataset.posId;
@@ -303,7 +282,6 @@ function handleAnswer(selectedId) {
     }
   });
 
-  // Feedback
   const feedback = $("#feedback");
   feedback.classList.remove("hidden");
 
@@ -328,8 +306,21 @@ function handleAnswer(selectedId) {
 // Event listeners
 // ========================================
 function init() {
+  // ロール選択
+  $$(".role-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      $$(".role-btn").forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      state.playerRole = btn.dataset.role;
+      // ギミックボタンを有効化
+      $$(".mechanic-btn").forEach((b) => (b.disabled = false));
+    });
+  });
+
+  // ギミック選択
   $$(".mechanic-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
+      if (!state.playerRole) return;
       showScreen("quiz");
       startNewQuestion();
     });

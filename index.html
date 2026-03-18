@@ -14,9 +14,22 @@
 
     <!-- メカニクス選択画面 -->
     <div id="menu-screen" class="screen active">
+      <div class="role-select">
+        <label class="role-select-label">自分のロール</label>
+        <div class="role-buttons" id="role-buttons">
+          <button class="role-btn" data-role="MT">MT</button>
+          <button class="role-btn" data-role="ST">ST</button>
+          <button class="role-btn" data-role="H1">H1</button>
+          <button class="role-btn" data-role="H2">H2</button>
+          <button class="role-btn" data-role="D1">D1</button>
+          <button class="role-btn" data-role="D2">D2</button>
+          <button class="role-btn" data-role="D3">D3</button>
+          <button class="role-btn" data-role="D4">D4</button>
+        </div>
+      </div>
       <h2>練習するギミックを選択</h2>
       <div class="mechanic-list">
-        <button class="mechanic-btn" data-mechanic="party-synergy">
+        <button class="mechanic-btn" data-mechanic="party-synergy" disabled>
           <span class="phase-tag">P2</span>
           <span class="mechanic-name">連携プログラムPT</span>
           <span class="mechanic-sub">リリードール式</span>
