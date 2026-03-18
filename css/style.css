@@ -312,35 +312,11 @@ header h1 {
   stroke-width: 2;
 }
 
-/* Field markers */
-.field-marker circle {
-  stroke-width: 1.5;
-  r: 12;
-}
-
-.field-marker text {
-  font-size: 12px;
-  font-weight: bold;
+.cardinal {
+  fill: var(--text-secondary);
+  font-size: 14px;
   text-anchor: middle;
   dominant-baseline: central;
-}
-
-.marker-letter circle {
-  fill: rgba(107, 176, 179, 0.15);
-  stroke: var(--accent);
-}
-
-.marker-letter text {
-  fill: var(--accent);
-}
-
-.marker-number circle {
-  fill: rgba(200, 181, 96, 0.15);
-  stroke: var(--accent-gold);
-}
-
-.marker-number text {
-  fill: var(--accent-gold);
 }
 
 .boss-circle {
