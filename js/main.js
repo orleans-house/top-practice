@@ -235,21 +235,19 @@ function resolveAdjustedSides(party) {
   return sides;
 }
 
-// 頭割り調整: プレステ調整済みの側をベースに、
-// 2人の頭割りが同じ側に被った場合、南側と列ペアが交代
-function resolveStackSides(stackMarkers, psAdjustedSides) {
-  // プレステ調整後の側をコピー（入れ替え済み状態がベース）
+// 頭割り調整: プレステ調整済みの側と行位置をベースに、
+// 2人の頭割りが同じ側に被った場合、南側（行位置が大きい方）と列ペアが交代
+function resolveStackSides(stackMarkers, psAdjustedSides, psRowPositions) {
   const sides = { ...psAdjustedSides };
 
   const s0 = sides[stackMarkers[0]];
   const s1 = sides[stackMarkers[1]];
 
   if (s0 === s1) {
-    // 同じ側に被った → 元のグループ順で南側を特定
-    const group = s0 === "left" ? LEFT_GROUP : RIGHT_GROUP;
-    const idx0 = group.indexOf(stackMarkers[0]);
-    const idx1 = group.indexOf(stackMarkers[1]);
-    const southMarker = idx0 > idx1 ? stackMarkers[0] : stackMarkers[1];
+    // 同じ側に被った → PS後の行位置で南側を特定
+    const row0 = psRowPositions[stackMarkers[0]];
+    const row1 = psRowPositions[stackMarkers[1]];
+    const southMarker = row0 > row1 ? stackMarkers[0] : stackMarkers[1];
 
     // 南側と列ペアを交代
     const pair = ROW_PAIRS.find((p) => p.includes(southMarker));
@@ -294,19 +292,32 @@ function generateScenario() {
   const originalSide = LEFT_GROUP.includes(playerRole) ? "left" : "right";
   const wasAdjusted = psSide !== originalSide;
 
+  // 全員のポジション算出 + 行位置を記録
   const allAssignments = {};
+  const psRowPositions = {};
   ROLES.forEach((role) => {
     const s = adjustedSides[role];
-    const { posId } = calcRolePosition(role, party[role], s, glitch);
+    const { posIndex: rowIdx, posId } = calcRolePosition(
+      role, party[role], s, glitch
+    );
     if (!allAssignments[posId]) allAssignments[posId] = [];
     allAssignments[posId].push(role);
+    psRowPositions[role] = rowIdx;
   });
+
+  // PS後の左右グループを行位置順にソート
+  const psLeftGroup = ROLES.filter((r) => adjustedSides[r] === "left")
+    .sort((a, b) => psRowPositions[a] - psRowPositions[b]);
+  const psRightGroup = ROLES.filter((r) => adjustedSides[r] === "right")
+    .sort((a, b) => psRowPositions[a] - psRowPositions[b]);
 
   // --- 頭割りフェーズ ---
   const shuffledRoles = shuffle([...ROLES]);
   const stackMarkers = [shuffledRoles[0], shuffledRoles[1]];
 
-  const stackSides = resolveStackSides(stackMarkers, adjustedSides);
+  const stackSides = resolveStackSides(
+    stackMarkers, adjustedSides, psRowPositions
+  );
   const stackPlayerSide = stackSides[playerRole];
 
   // 正解の頭割りポジション
@@ -332,6 +343,9 @@ function generateScenario() {
     allAssignments,
     adjustedSides,
     wasAdjusted,
+    psRowPositions,
+    psLeftGroup,
+    psRightGroup,
     // 頭割り
     stackMarkers,
     stackSides,
@@ -345,22 +359,49 @@ function generateScenario() {
 // Rendering
 // ========================================
 
-function renderPartyList(scenario, highlightStack) {
-  const { party, playerRole, stackMarkers } = scenario;
+// パーティリストを動的に構築
+// useAdjusted: true → PS調整後の並び順で表示
+function renderPartyList(scenario, { useAdjusted = false, highlightStack = false } = {}) {
+  const { party, playerRole, stackMarkers, psLeftGroup, psRightGroup } = scenario;
 
-  [...LEFT_GROUP, ...RIGHT_GROUP].forEach((role) => {
-    const el = $(`.party-member[data-role="${role}"]`);
-    const symEl = el.querySelector(".member-symbol");
-    const sym = party[role];
-    symEl.innerHTML = "";
-    symEl.appendChild(createSymbolSVG(sym, 22));
-    symEl.dataset.symbol = sym;
-    el.classList.toggle("is-you", role === playerRole);
-    el.classList.toggle(
-      "has-stack",
-      highlightStack && stackMarkers.includes(role)
-    );
-  });
+  const leftGroup = useAdjusted ? psLeftGroup : LEFT_GROUP;
+  const rightGroup = useAdjusted ? psRightGroup : RIGHT_GROUP;
+
+  const leftContainer = $(".party-group:first-child");
+  const rightContainer = $(".party-group:last-child");
+
+  function buildMembers(container, group) {
+    // グループタイトルは残す、メンバーを再構築
+    const title = container.querySelector(".group-title");
+    container.innerHTML = "";
+    container.appendChild(title);
+
+    group.forEach((role) => {
+      const div = document.createElement("div");
+      div.className = "party-member";
+      div.dataset.role = role;
+      if (role === playerRole) div.classList.add("is-you");
+      if (highlightStack && stackMarkers.includes(role)) {
+        div.classList.add("has-stack");
+      }
+
+      const roleSpan = document.createElement("span");
+      roleSpan.className = "member-role";
+      roleSpan.textContent = role;
+
+      const symSpan = document.createElement("span");
+      symSpan.className = "member-symbol";
+      symSpan.dataset.symbol = party[role];
+      symSpan.appendChild(createSymbolSVG(party[role], 22));
+
+      div.appendChild(roleSpan);
+      div.appendChild(symSpan);
+      container.appendChild(div);
+    });
+  }
+
+  buildMembers(leftContainer, leftGroup);
+  buildMembers(rightContainer, rightGroup);
 }
 
 function renderPlaystationPhase(scenario) {
@@ -374,8 +415,8 @@ function renderPlaystationPhase(scenario) {
   // Phase label
   $("#phase-label").textContent = "プレステ散開";
 
-  // Party list（頭割りマーカーは非表示）
-  renderPartyList(scenario, false);
+  // Party list（元の並び順、頭割りマーカーなし）
+  renderPartyList(scenario);
 
   // OmegaM（北固定）
   $("#omega-m-marker").setAttribute("transform", "translate(200,40)");
@@ -438,8 +479,8 @@ function renderStackPhase(scenario) {
   // Phase label
   $("#phase-label").textContent = "頭割り";
 
-  // Party list（頭割りマーカー表示）
-  renderPartyList(scenario, true);
+  // Party list（PS調整後の並び順 + 頭割りマーカー表示）
+  renderPartyList(scenario, { useAdjusted: true, highlightStack: true });
 
   // ボスを非表示にして基準点を表示
   $("#omega-m-marker").style.display = "none";
