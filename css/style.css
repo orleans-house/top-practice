@@ -600,6 +600,11 @@ header h1 {
   background: rgba(200, 112, 112, 0.1);
 }
 
+.p3-party-member.is-you.has-monitor {
+  background: rgba(74, 124, 126, 0.2);
+  outline: 1px solid var(--accent);
+}
+
 .p3-party-member.has-monitor .member-assignment {
   color: var(--accent-danger);
 }
