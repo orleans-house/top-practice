@@ -32,11 +32,36 @@ const STACK_POSITIONS = {
   right_far: "E",
 };
 
+// P3 検知式波動砲
+const P3_PRIORITY = ["MT", "ST", "D1", "D2", "D3", "D4", "H1", "H2"];
+
+// ボスモニター方向が東の場合の各ロールのポジション座標
+// safe side = 西（ボスモニターの反対側）
+const P3_POSITIONS_MONITOR_EAST = {
+  "無職①": { x: 200, y: 60,  label: "無職①" },
+  "検知①": { x: 130, y: 130, label: "検知①" },
+  "検知②": { x: 110, y: 250, label: "検知②" },
+  "検知③": { x: 80,  y: 280, label: "検知③" },
+  "無職②": { x: 250, y: 270, label: "無職②" },
+  "無職③": { x: 320, y: 270, label: "無職③" },
+  "無職④": { x: 210, y: 350, label: "無職④" },
+  "無職⑤": { x: 200, y: 380, label: "無職⑤" },
+};
+
+// 検知/無職の当たり判定マッピング（誰のモニターが誰に当たるか）
+const P3_HIT_ASSIGNMENTS = {
+  "boss":  ["無職②", "無職③"],
+  "検知①": ["検知②", "検知③"],
+  "検知②": ["無職①", "検知①"],
+  "検知③": ["無職④", "無職⑤"],
+};
+
 // ========================================
 // State
 // ========================================
 let state = {
   screen: "menu",
+  mechanic: null,
   playerRole: null,
   correct: 0,
   total: 0,
@@ -360,6 +385,71 @@ function generateScenario() {
 }
 
 // ========================================
+// P3 Scenario generation
+// ========================================
+
+function calcP3Positions(monitorDir) {
+  const result = {};
+  for (const [key, pos] of Object.entries(P3_POSITIONS_MONITOR_EAST)) {
+    if (monitorDir === "east") {
+      result[key] = { x: pos.x, y: pos.y, label: pos.label };
+    } else {
+      result[key] = { x: 400 - pos.x, y: pos.y, label: pos.label };
+    }
+  }
+  return result;
+}
+
+function generateP3Scenario() {
+  const playerRole = state.playerRole;
+  const shuffled = shuffle(ROLES);
+  const monitorRoles = shuffled.slice(0, 3);
+  const noMonitorRoles = shuffled.slice(3);
+
+  // Sort by P3_PRIORITY order
+  monitorRoles.sort((a, b) => P3_PRIORITY.indexOf(a) - P3_PRIORITY.indexOf(b));
+  noMonitorRoles.sort((a, b) => P3_PRIORITY.indexOf(a) - P3_PRIORITY.indexOf(b));
+
+  // Random boss monitor direction
+  const monitorDir = Math.random() < 0.5 ? "east" : "west";
+
+  // Build assignments map (role -> label)
+  const assignments = {};
+  monitorRoles.forEach((role, i) => {
+    assignments[role] = `検知${["①", "②", "③"][i]}`;
+  });
+  noMonitorRoles.forEach((role, i) => {
+    assignments[role] = `無職${["①", "②", "③", "④", "⑤"][i]}`;
+  });
+
+  // Build reverse map (label -> [role])
+  const allAssignments = {};
+  for (const [role, label] of Object.entries(assignments)) {
+    if (!allAssignments[label]) allAssignments[label] = [];
+    allAssignments[label].push(role);
+  }
+
+  // Calculate positions
+  const positions = calcP3Positions(monitorDir);
+
+  // Player's correct position
+  const playerLabel = assignments[playerRole];
+  const correctPosId = playerLabel;
+
+  return {
+    playerRole,
+    monitorDir,
+    monitorPlayers: monitorRoles,
+    noMonitorPlayers: noMonitorRoles,
+    assignments,
+    playerLabel,
+    positions,
+    correctPosId,
+    allAssignments,
+  };
+}
+
+// ========================================
 // Rendering
 // ========================================
 
@@ -408,10 +498,59 @@ function renderPartyList(scenario, { useAdjusted = false, highlightStack = false
   buildMembers(rightContainer, rightGroup);
 }
 
+function renderP3PartyList(scenario) {
+  const { assignments, playerRole, monitorPlayers } = scenario;
+  const partyList = $("#party-list");
+
+  const container = document.createElement("div");
+  container.className = "p3-party-list";
+
+  P3_PRIORITY.forEach((role) => {
+    const div = document.createElement("div");
+    div.className = "p3-party-member";
+    if (role === playerRole) div.classList.add("is-you");
+    if (monitorPlayers.includes(role)) div.classList.add("has-monitor");
+
+    const roleSpan = document.createElement("span");
+    roleSpan.className = "member-role";
+    roleSpan.textContent = role;
+
+    const assignSpan = document.createElement("span");
+    assignSpan.className = "member-assignment";
+    assignSpan.textContent = assignments[role];
+
+    div.appendChild(roleSpan);
+    div.appendChild(assignSpan);
+    container.appendChild(div);
+  });
+
+  partyList.innerHTML = "";
+  partyList.appendChild(container);
+}
+
+function ensureP2PartyListStructure() {
+  const partyList = $("#party-list");
+  if (!partyList.querySelector(".party-row")) {
+    partyList.innerHTML = `
+      <div class="party-row">
+        <div class="party-group">
+          <div class="group-title">左組</div>
+        </div>
+        <div class="party-group">
+          <div class="group-title">右組</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
 function renderPlaystationPhase(scenario) {
+  ensureP2PartyListStructure();
+
   // Info cards
   $("#info-role .info-value").textContent = scenario.playerRole;
   const glitchCard = $("#info-glitch");
+  glitchCard.querySelector(".info-label").textContent = "プログラム";
   glitchCard.querySelector(".info-value").textContent =
     scenario.glitch === "mid" ? "ミドル（近）" : "ファー（遠）";
   glitchCard.className = `info-card ${scenario.glitch}`;
@@ -426,6 +565,9 @@ function renderPlaystationPhase(scenario) {
   $("#omega-m-marker").setAttribute("transform", "translate(200,40)");
   $("#omega-m-marker").style.display = "";
   $("#omega-f-marker").style.display = "";
+  // Hide P3 elements
+  $("#p3-boss-marker").style.display = "none";
+  $("#p3-monitor-indicator").style.display = "none";
 
   // Position markers
   const positions = calcPlaystationPositions();
@@ -544,6 +686,102 @@ function renderStackPhase(scenario) {
   startTimer();
 }
 
+function renderP3Phase(scenario) {
+  // Info cards
+  $("#info-role .info-value").textContent = scenario.playerRole;
+  const glitchCard = $("#info-glitch");
+  glitchCard.querySelector(".info-label").textContent = "役割";
+  glitchCard.querySelector(".info-value").textContent = scenario.playerLabel;
+  const isMonitor = scenario.monitorPlayers.includes(scenario.playerRole);
+  glitchCard.className = isMonitor ? "info-card p3-monitor" : "info-card p3-nomonitor";
+
+  // Phase label
+  $("#phase-label").textContent = "検知式波動砲";
+
+  // Party list
+  renderP3PartyList(scenario);
+
+  // Hide P2 bosses, show P3 boss
+  $("#omega-m-marker").style.display = "none";
+  $("#omega-f-marker").style.display = "none";
+  $("#p3-boss-marker").style.display = "";
+
+  // Monitor direction indicator
+  const indicator = $("#p3-monitor-indicator");
+  indicator.style.display = "";
+  indicator.innerHTML = "";
+
+  const ns = "http://www.w3.org/2000/svg";
+  const rect = document.createElementNS(ns, "rect");
+  rect.classList.add("p3-monitor-dir");
+  const text = document.createElementNS(ns, "text");
+  text.classList.add("p3-monitor-text");
+  text.textContent = "モニター";
+
+  if (scenario.monitorDir === "east") {
+    rect.setAttribute("x", "310");
+    rect.setAttribute("y", "185");
+    rect.setAttribute("width", "60");
+    rect.setAttribute("height", "30");
+    rect.setAttribute("rx", "4");
+    text.setAttribute("x", "340");
+    text.setAttribute("y", "200");
+  } else {
+    rect.setAttribute("x", "30");
+    rect.setAttribute("y", "185");
+    rect.setAttribute("width", "60");
+    rect.setAttribute("height", "30");
+    rect.setAttribute("rx", "4");
+    text.setAttribute("x", "60");
+    text.setAttribute("y", "200");
+  }
+
+  indicator.appendChild(rect);
+  indicator.appendChild(text);
+
+  // Position markers
+  const posGroup = $("#positions");
+  posGroup.innerHTML = "";
+
+  for (const [label, pos] of Object.entries(scenario.positions)) {
+    const g = document.createElementNS(ns, "g");
+    g.classList.add("position-marker");
+    g.dataset.posId = label;
+
+    const circle = document.createElementNS(ns, "circle");
+    circle.classList.add("pos-circle");
+    circle.setAttribute("cx", pos.x);
+    circle.setAttribute("cy", pos.y);
+
+    const posLabel = document.createElementNS(ns, "text");
+    posLabel.classList.add("pos-label");
+    posLabel.setAttribute("x", pos.x);
+    posLabel.setAttribute("y", pos.y);
+    posLabel.textContent = label;
+    posLabel.style.fontSize = "10px";
+
+    const roleLabel = document.createElementNS(ns, "text");
+    roleLabel.classList.add("pos-role-label");
+    roleLabel.setAttribute("x", pos.x);
+    roleLabel.setAttribute("y", pos.y + 30);
+    const assigned = scenario.allAssignments[label];
+    roleLabel.textContent = assigned ? assigned.join("/") : "";
+
+    g.appendChild(circle);
+    g.appendChild(posLabel);
+    g.appendChild(roleLabel);
+
+    g.addEventListener("click", () => handleP3Answer(label));
+    posGroup.appendChild(g);
+  }
+
+  $("#feedback").classList.add("hidden");
+  state.answered = false;
+  state.phase = "wave-cannon";
+
+  startTimer();
+}
+
 function renderScore() {
   $("#score-correct").textContent = state.correct;
   $("#score-total").textContent = state.total;
@@ -574,7 +812,9 @@ function startTimer() {
 
   state.timer = setTimeout(() => {
     if (!state.answered) {
-      if (state.phase === "playstation") {
+      if (state.mechanic === "wave-cannon") {
+        handleP3Timeout();
+      } else if (state.phase === "playstation") {
         handleTimeout();
       } else {
         handleStackTimeout();
@@ -730,6 +970,79 @@ function handleStackTimeout() {
 }
 
 // ========================================
+// Answer handling — P3 検知式波動砲
+// ========================================
+function showP3Feedback(scenario, isCorrect, isTimeout) {
+  const dirLabel = scenario.monitorDir === "east" ? "東" : "西";
+  const safeLabel = scenario.monitorDir === "east" ? "西" : "東";
+
+  const result = $("#feedback-result");
+  if (isTimeout) {
+    result.textContent = "時間切れ…";
+    result.className = "timeout";
+  } else {
+    result.textContent = isCorrect ? "正解！" : "不正解…";
+    result.className = isCorrect ? "correct" : "incorrect";
+  }
+
+  // Build hit explanation for the player
+  let hitInfo = "";
+  const playerLabel = scenario.playerLabel;
+  if (playerLabel.startsWith("検知")) {
+    // Player has a monitor - show who they hit
+    const targets = P3_HIT_ASSIGNMENTS[playerLabel];
+    if (targets) {
+      hitInfo = `${playerLabel}のモニター → ${targets.join("、")} に当てる`;
+    }
+  } else {
+    // Player is nomonitor - find which hit they're part of
+    for (const [source, targets] of Object.entries(P3_HIT_ASSIGNMENTS)) {
+      if (targets.includes(playerLabel)) {
+        const sourceName = source === "boss" ? "ボスモニター" : `${source}のモニター`;
+        hitInfo = `${sourceName} → ${targets.join("、")} が受ける`;
+        break;
+      }
+    }
+  }
+
+  $("#feedback-explanation").innerHTML = `
+    ボスモニター: <strong>${dirLabel}</strong> / 安地: <strong>${safeLabel}</strong><br>
+    <strong>${scenario.playerRole}</strong> → <strong>${playerLabel}</strong><br>
+    <span style="color:var(--text-secondary);font-size:0.8rem">
+      ${hitInfo}
+    </span>
+  `;
+
+  $("#next-btn").textContent = "次の問題";
+  $("#feedback").classList.remove("hidden");
+}
+
+function handleP3Answer(selectedId) {
+  if (state.answered) return;
+  state.answered = true;
+  state.total++;
+  stopTimer();
+
+  const scenario = state.scenario;
+  const isCorrect = selectedId === scenario.correctPosId;
+  if (isCorrect) state.correct++;
+
+  renderScore();
+  revealPositions(selectedId, scenario.correctPosId);
+  showP3Feedback(scenario, isCorrect, false);
+}
+
+function handleP3Timeout() {
+  state.answered = true;
+  state.total++;
+  stopTimer();
+
+  renderScore();
+  revealPositions(null, state.scenario.correctPosId);
+  showP3Feedback(state.scenario, false, true);
+}
+
+// ========================================
 // Event listeners
 // ========================================
 function init() {
@@ -745,6 +1058,7 @@ function init() {
   $$(".mechanic-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (!state.playerRole) return;
+      state.mechanic = btn.dataset.mechanic;
       showScreen("quiz");
       startNewQuestion();
     });
@@ -756,11 +1070,11 @@ function init() {
   });
 
   $("#next-btn").addEventListener("click", () => {
-    if (state.phase === "playstation") {
-      // プレステ回答後 → 頭割りフェーズへ
+    if (state.mechanic === "wave-cannon") {
+      startNewQuestion();
+    } else if (state.phase === "playstation") {
       renderStackPhase(state.scenario);
     } else {
-      // 頭割り回答後 → 次の問題
       startNewQuestion();
     }
   });
@@ -773,7 +1087,9 @@ function init() {
 
   document.addEventListener("keydown", (e) => {
     if (state.screen === "quiz" && state.answered && e.key === "Enter") {
-      if (state.phase === "playstation") {
+      if (state.mechanic === "wave-cannon") {
+        startNewQuestion();
+      } else if (state.phase === "playstation") {
         renderStackPhase(state.scenario);
       } else {
         startNewQuestion();
@@ -783,8 +1099,13 @@ function init() {
 }
 
 function startNewQuestion() {
-  state.scenario = generateScenario();
-  renderPlaystationPhase(state.scenario);
+  if (state.mechanic === "wave-cannon") {
+    state.scenario = generateP3Scenario();
+    renderP3Phase(state.scenario);
+  } else {
+    state.scenario = generateScenario();
+    renderPlaystationPhase(state.scenario);
+  }
 }
 
 init();

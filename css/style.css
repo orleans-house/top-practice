@@ -572,6 +572,69 @@ header h1 {
 }
 
 /* ========================================
+   P3 パーティリスト（優先度順・単一カラム）
+   ======================================== */
+.p3-party-list {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.p3-party-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 2px;
+}
+
+.p3-party-member.is-you {
+  background: rgba(74, 124, 126, 0.2);
+  outline: 1px solid var(--accent);
+}
+
+.p3-party-member.has-monitor {
+  background: rgba(200, 112, 112, 0.1);
+}
+
+.p3-party-member.has-monitor .member-assignment {
+  color: var(--accent-danger);
+}
+
+.member-assignment {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: bold;
+}
+
+/* P3 モニター方向インジケータ */
+.p3-monitor-dir {
+  fill: rgba(200, 112, 112, 0.15);
+  stroke: var(--accent-danger);
+  stroke-width: 1.5;
+}
+
+.p3-monitor-text {
+  fill: var(--accent-danger);
+  font-size: 11px;
+  font-weight: bold;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* P3 情報カードの色分け */
+.info-card.p3-monitor .info-value {
+  color: var(--accent-danger);
+}
+
+.info-card.p3-nomonitor .info-value {
+  color: var(--text-primary);
+}
+
+/* ========================================
    Responsive: mobile stacks vertically
    ======================================== */
 @media (max-width: 720px) {
