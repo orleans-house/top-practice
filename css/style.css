@@ -19,8 +19,8 @@
   --far-color: #d2a8ff;
 
   /* プレステ記号ごとの色 */
-  --sym-circle: #60c0ff;   /* ○ 青 */
-  --sym-cross: #ff6070;    /* × 赤 */
+  --sym-circle: #ff6070;   /* ○ 赤 */
+  --sym-cross: #60c0ff;    /* × 青 */
   --sym-triangle: #50e080; /* △ 緑 */
   --sym-square: #e080ff;   /* □ 紫 */
 }
