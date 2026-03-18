@@ -34,6 +34,11 @@
           <span class="mechanic-name">連携プログラムPT</span>
           <span class="mechanic-sub">リリードール式</span>
         </button>
+        <button class="mechanic-btn" data-mechanic="wave-cannon" disabled>
+          <span class="phase-tag">P3</span>
+          <span class="mechanic-name">検知式波動砲</span>
+          <span class="mechanic-sub">AST式</span>
+        </button>
       </div>
     </div>
 
@@ -132,6 +137,11 @@
                 <circle r="14" class="boss-circle-f"/>
                 <text class="boss-text-f" text-anchor="middle" dominant-baseline="central">F</text>
               </g>
+              <g id="p3-boss-marker" style="display:none">
+                <circle cx="200" cy="200" r="20" class="boss-circle"/>
+                <text x="200" y="200" class="boss-text" text-anchor="middle" dominant-baseline="central">B</text>
+              </g>
+              <g id="p3-monitor-indicator" style="display:none"></g>
               <g id="positions"></g>
             </svg>
           </div>
