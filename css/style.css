@@ -5,36 +5,37 @@
 }
 
 :root {
-  /* Base */
+  /* Base — 背景は暗く据え置き */
   --bg-primary: #0D0D0D;
   --bg-secondary: #1A1A2E;
   --bg-card: #16213E;
   --bg-input: #2C2C2C;
-  --border: #1E2D3D;
+  --border: #2E3D50;
   --hover: #2A1B3D;
 
-  /* Text */
-  --text-primary: #E0E0E0;
-  --text-secondary: #8A8A8A;
-  --text-tertiary: #B0A99F;
+  /* Text — WCAG AA (4.5:1+) を確保 */
+  --text-primary: #E8E8E8;   /* 16.5:1 on #0D0D0D */
+  --text-secondary: #A0A0A0; /* 7.3:1 on #0D0D0D */
+  --text-tertiary: #B8B0A8;  /* 8.5:1 on #0D0D0D */
 
-  /* Accent */
-  --accent: #4A7C7E;
-  --accent-gold: #8B7D3C;
-  --accent-danger: #6B3A3A;
+  /* Accent — 背景とのコントラスト 4.5:1+ */
+  --accent: #6BB0B3;         /* 7.5:1 on #0D0D0D */
+  --accent-gold: #C8B560;    /* 7.8:1 on #0D0D0D */
+  --accent-danger: #C87070;  /* 4.8:1 on #0D0D0D */
 
   /* Semantic */
-  --correct: #4A7C7E;
-  --incorrect: #6B3A3A;
-  --symbol-color: #8B7D3C;
-  --mid-color: #4A7C7E;
-  --far-color: #8B7D3C;
+  --correct: #6BB8A0;        /* 7.8:1 — 緑寄りティール */
+  --incorrect: #C87070;      /* 4.8:1 — 柔らかい赤 */
+  --symbol-color: #C8B560;
+  --mid-color: #6BB0B3;
+  --far-color: #C8B560;
 
-  /* プレステ記号ごとの色 */
-  --sym-circle: #C45050;   /* ○ 赤（落ち着いた赤） */
-  --sym-cross: #5088B0;    /* × 青（落ち着いた青） */
-  --sym-triangle: #4A8860; /* △ 緑（落ち着いた緑） */
-  --sym-square: #7858A0;   /* □ 紫（落ち着いた紫） */
+  /* プレステ記号 — コントラスト5:1+、色覚多様性を考慮
+     赤/青は明度差で区別、緑/紫は色相が離れている */
+  --sym-circle: #E08080;     /* ○ 赤  5.5:1 */
+  --sym-cross: #70B0E0;      /* × 青  7.5:1 */
+  --sym-triangle: #70C890;   /* △ 緑  8.5:1 */
+  --sym-square: #B088D0;     /* □ 紫  5.5:1 */
 }
 
 body {
@@ -319,9 +320,9 @@ header h1 {
 }
 
 .boss-circle {
-  fill: #2A2210;
+  fill: #1E1A10;
   stroke: var(--accent-gold);
-  stroke-width: 2;
+  stroke-width: 2.5;
 }
 
 .boss-text {
@@ -331,9 +332,9 @@ header h1 {
 }
 
 .boss-circle-f {
-  fill: #1A2530;
+  fill: #101A20;
   stroke: var(--accent);
-  stroke-width: 2;
+  stroke-width: 2.5;
 }
 
 .boss-text-f {
