@@ -139,9 +139,12 @@ function createSymbolSVG(symbol, size = 20) {
 
 function calcPositions() {
   const cx = 200;
+  const cy = 200;
   const xSpread = 70;
-  const yStart = 60;
   const yGap = 70;
+  // 2と3の間が中心(cy)になるように: 0,1 が上、2,3 が下
+  // 中心 = (pos1 + pos2) / 2 → pos1 = cy - yGap/2, pos0 = cy - yGap*1.5
+  const yStart = cy - yGap * 1.5;
 
   const positions = [];
 
