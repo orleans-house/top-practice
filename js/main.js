@@ -236,8 +236,9 @@ function resolveAdjustedSides(party) {
 }
 
 // 頭割り調整: プレステ調整済みの側と行位置をベースに、
-// 2人の頭割りが同じ側に被った場合、南側（行位置が大きい方）と列ペアが交代
-function resolveStackSides(stackMarkers, psAdjustedSides, psRowPositions) {
+// 2人の頭割りが同じ側に被った場合、
+// 南側のマーカー持ちと、対面の同じプレステ記号の人が入れ替わる
+function resolveStackSides(stackMarkers, psAdjustedSides, psRowPositions, party) {
   const sides = { ...psAdjustedSides };
 
   const s0 = sides[stackMarkers[0]];
@@ -249,10 +250,13 @@ function resolveStackSides(stackMarkers, psAdjustedSides, psRowPositions) {
     const row1 = psRowPositions[stackMarkers[1]];
     const southMarker = row0 > row1 ? stackMarkers[0] : stackMarkers[1];
 
-    // 南側と列ペアを交代
-    const pair = ROW_PAIRS.find((p) => p.includes(southMarker));
-    const partner = pair[0] === southMarker ? pair[1] : pair[0];
+    // 南側マーカー持ちと同じプレステ記号を持つ対面の人を探す
+    const southSymbol = party[southMarker];
+    const partner = ROLES.find(
+      (r) => r !== southMarker && party[r] === southSymbol
+    );
 
+    // 入れ替え
     sides[southMarker] = sides[southMarker] === "left" ? "right" : "left";
     sides[partner] = sides[partner] === "left" ? "right" : "left";
   }
@@ -316,7 +320,7 @@ function generateScenario() {
   const stackMarkers = [shuffledRoles[0], shuffledRoles[1]];
 
   const stackSides = resolveStackSides(
-    stackMarkers, adjustedSides, psRowPositions
+    stackMarkers, adjustedSides, psRowPositions, party
   );
   const stackPlayerSide = stackSides[playerRole];
 
