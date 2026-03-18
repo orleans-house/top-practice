@@ -235,18 +235,17 @@ function resolveAdjustedSides(party) {
   return sides;
 }
 
-// 頭割り調整: 2人の頭割りが同じ側に被った場合、南側と列ペアが交代
-function resolveStackSides(stackMarkers) {
-  const sides = {};
-  ROLES.forEach((role) => {
-    sides[role] = LEFT_GROUP.includes(role) ? "left" : "right";
-  });
+// 頭割り調整: プレステ調整済みの側をベースに、
+// 2人の頭割りが同じ側に被った場合、南側と列ペアが交代
+function resolveStackSides(stackMarkers, psAdjustedSides) {
+  // プレステ調整後の側をコピー（入れ替え済み状態がベース）
+  const sides = { ...psAdjustedSides };
 
   const s0 = sides[stackMarkers[0]];
   const s1 = sides[stackMarkers[1]];
 
   if (s0 === s1) {
-    // 同じ側に被った → 南側を特定
+    // 同じ側に被った → 元のグループ順で南側を特定
     const group = s0 === "left" ? LEFT_GROUP : RIGHT_GROUP;
     const idx0 = group.indexOf(stackMarkers[0]);
     const idx1 = group.indexOf(stackMarkers[1]);
@@ -307,7 +306,7 @@ function generateScenario() {
   const shuffledRoles = shuffle([...ROLES]);
   const stackMarkers = [shuffledRoles[0], shuffledRoles[1]];
 
-  const stackSides = resolveStackSides(stackMarkers);
+  const stackSides = resolveStackSides(stackMarkers, adjustedSides);
   const stackPlayerSide = stackSides[playerRole];
 
   // 正解の頭割りポジション
@@ -318,8 +317,8 @@ function generateScenario() {
     stackCorrectId = glitch === "mid" ? "S" : "E";
   }
 
-  const stackWasAdjusted =
-    stackPlayerSide !== (LEFT_GROUP.includes(playerRole) ? "left" : "right");
+  // 頭割りで追加の入れ替えが発生したか（プレステ調整後と比較）
+  const stackWasAdjusted = stackPlayerSide !== adjustedSides[playerRole];
 
   return {
     playerRole,
