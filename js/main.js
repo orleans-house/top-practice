@@ -31,6 +31,8 @@ let state = {
   total: 0,
   scenario: null,
   answered: false,
+  timer: null,
+  urgentTimer: null,
 };
 
 // ========================================
@@ -213,7 +215,10 @@ function renderPartyList(scenario) {
 
   [...LEFT_GROUP, ...RIGHT_GROUP].forEach((role) => {
     const el = $(`.party-member[data-role="${role}"]`);
-    el.querySelector(".member-symbol").textContent = party[role];
+    const symEl = el.querySelector(".member-symbol");
+    const sym = party[role];
+    symEl.textContent = sym;
+    symEl.dataset.symbol = sym;
     el.classList.toggle("is-you", role === playerRole);
   });
 }
@@ -226,8 +231,6 @@ function renderScenario(scenario) {
   glitchCard.querySelector(".info-value").textContent =
     scenario.glitch === "mid" ? "ミドル（近）" : "ファー（遠）";
   glitchCard.className = `info-card ${scenario.glitch}`;
-
-  $("#info-symbol .info-value").textContent = scenario.playerSymbol;
 
   // Party list
   renderPartyList(scenario);
@@ -288,6 +291,9 @@ function renderScenario(scenario) {
   // Hide feedback
   $("#feedback").classList.add("hidden");
   state.answered = false;
+
+  // タイマー開始
+  startTimer();
 }
 
 function renderScore() {
@@ -296,18 +302,58 @@ function renderScore() {
 }
 
 // ========================================
+// Timer
+// ========================================
+const TIME_LIMIT = 3000; // 3秒
+
+function startTimer() {
+  stopTimer();
+
+  const bar = $("#timer-bar");
+  bar.classList.remove("urgent", "stopped");
+  bar.style.width = "100%";
+
+  // 次フレームでアニメーション開始（CSSトランジション発火用）
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      bar.style.transition = `width ${TIME_LIMIT}ms linear`;
+      bar.style.width = "0%";
+    });
+  });
+
+  // 残り1秒で赤くする
+  state.urgentTimer = setTimeout(() => {
+    bar.classList.add("urgent");
+  }, TIME_LIMIT - 1000);
+
+  // タイムアウト
+  state.timer = setTimeout(() => {
+    if (!state.answered) {
+      handleTimeout();
+    }
+  }, TIME_LIMIT);
+}
+
+function stopTimer() {
+  if (state.timer) {
+    clearTimeout(state.timer);
+    state.timer = null;
+  }
+  if (state.urgentTimer) {
+    clearTimeout(state.urgentTimer);
+    state.urgentTimer = null;
+  }
+  const bar = $("#timer-bar");
+  bar.classList.add("stopped");
+  bar.style.transition = "none";
+}
+
+// ========================================
 // Answer handling
 // ========================================
-function handleAnswer(selectedId) {
-  if (state.answered) return;
-  state.answered = true;
-  state.total++;
-
+function revealPositions(selectedId) {
   const scenario = state.scenario;
-  const isCorrect = selectedId === scenario.correctId;
-  if (isCorrect) state.correct++;
-
-  renderScore();
+  const isCorrect = selectedId && selectedId === scenario.correctId;
 
   $$(".position-marker").forEach((g) => {
     g.classList.add("disabled", "reveal");
@@ -321,14 +367,9 @@ function handleAnswer(selectedId) {
       g.classList.add("answer");
     }
   });
+}
 
-  const feedback = $("#feedback");
-  feedback.classList.remove("hidden");
-
-  const result = $("#feedback-result");
-  result.textContent = isCorrect ? "正解！" : "不正解…";
-  result.className = isCorrect ? "correct" : "incorrect";
-
+function showFeedback(scenario) {
   const sideName = scenario.side === "left" ? "左" : "右";
   const glitchName =
     scenario.glitch === "mid" ? "ミドル（近）" : "ファー（遠）";
@@ -343,6 +384,43 @@ function handleAnswer(selectedId) {
       ${scenario.glitch === "far" && scenario.side === "right" ? "ファー右は □△×○ の順（調整）" : "並び: ○×△□"}
     </span>
   `;
+
+  $("#feedback").classList.remove("hidden");
+}
+
+function handleAnswer(selectedId) {
+  if (state.answered) return;
+  state.answered = true;
+  state.total++;
+  stopTimer();
+
+  const scenario = state.scenario;
+  const isCorrect = selectedId === scenario.correctId;
+  if (isCorrect) state.correct++;
+
+  renderScore();
+  revealPositions(selectedId);
+
+  const result = $("#feedback-result");
+  result.textContent = isCorrect ? "正解！" : "不正解…";
+  result.className = isCorrect ? "correct" : "incorrect";
+
+  showFeedback(scenario);
+}
+
+function handleTimeout() {
+  state.answered = true;
+  state.total++;
+  stopTimer();
+
+  renderScore();
+  revealPositions(null);
+
+  const result = $("#feedback-result");
+  result.textContent = "時間切れ…";
+  result.className = "timeout";
+
+  showFeedback(state.scenario);
 }
 
 // ========================================
@@ -369,7 +447,10 @@ function init() {
     });
   });
 
-  $("#back-btn").addEventListener("click", () => showScreen("menu"));
+  $("#back-btn").addEventListener("click", () => {
+    stopTimer();
+    showScreen("menu");
+  });
   $("#next-btn").addEventListener("click", startNewQuestion);
 
   $("#reset-score-btn").addEventListener("click", () => {

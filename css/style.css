@@ -17,6 +17,12 @@
   --symbol-color: #ffa657;
   --mid-color: #79c0ff;
   --far-color: #d2a8ff;
+
+  /* プレステ記号ごとの色 */
+  --sym-circle: #60c0ff;   /* ○ 青 */
+  --sym-cross: #ff6070;    /* × 赤 */
+  --sym-triangle: #50e080; /* △ 緑 */
+  --sym-square: #e080ff;   /* □ 紫 */
 }
 
 body {
@@ -160,7 +166,7 @@ header h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .icon-btn {
@@ -189,11 +195,36 @@ header h1 {
   color: var(--correct);
 }
 
+/* Timer bar */
+#timer-bar-container {
+  height: 4px;
+  background: var(--bg-card);
+  border-radius: 2px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+#timer-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width linear;
+}
+
+#timer-bar.urgent {
+  background: var(--incorrect);
+}
+
+#timer-bar.stopped {
+  transition: none;
+}
+
 /* Scenario info */
 .info-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .info-card {
@@ -214,11 +245,6 @@ header h1 {
 .info-value {
   font-size: 1.2rem;
   font-weight: bold;
-}
-
-.info-value.symbol {
-  color: var(--symbol-color);
-  font-size: 1.5rem;
 }
 
 .info-card.mid .info-value {
@@ -383,6 +409,10 @@ header h1 {
   color: var(--incorrect);
 }
 
+#feedback-result.timeout {
+  color: var(--symbol-color);
+}
+
 #feedback-explanation {
   color: var(--text-secondary);
   font-size: 0.9rem;
@@ -417,7 +447,7 @@ header h1 {
 
 /* Party list */
 #party-list {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .party-row {
@@ -430,38 +460,45 @@ header h1 {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px;
+  padding: 10px;
 }
 
 .group-title {
   font-size: 0.75rem;
   color: var(--text-secondary);
   text-align: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
 }
 
 .party-member {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  padding: 5px 10px;
+  border-radius: 6px;
+  margin-bottom: 2px;
 }
 
 .party-member.is-you {
   background: rgba(88, 166, 255, 0.15);
-  border: 1px solid var(--accent);
+  outline: 1px solid var(--accent);
 }
 
 .member-role {
   color: var(--text-primary);
   font-weight: bold;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 
 .member-symbol {
-  color: var(--symbol-color);
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   font-weight: bold;
 }
+
+/* 記号ごとの色分け */
+.member-symbol[data-symbol="○"] { color: var(--sym-circle); }
+.member-symbol[data-symbol="×"] { color: var(--sym-cross); }
+.member-symbol[data-symbol="△"] { color: var(--sym-triangle); }
+.member-symbol[data-symbol="□"] { color: var(--sym-square); }
