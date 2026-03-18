@@ -319,6 +319,13 @@ header h1 {
   dominant-baseline: central;
 }
 
+.laser-line {
+  stroke: var(--accent-danger);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  opacity: 0.5;
+}
+
 .boss-circle {
   fill: #1E1A10;
   stroke: var(--accent-gold);

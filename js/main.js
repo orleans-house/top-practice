@@ -137,35 +137,39 @@ function createSymbolSVG(symbol, size = 20) {
 // Position geometry (M北固定)
 // ========================================
 
-function calcPositions() {
+// glitch: "mid" or "far"
+// ミドル: レーザー（M→中央の直線）を挟んでギリギリ近くに並ぶ
+// ファー: ペアから最大距離を取るため左右に大きく開く
+function calcPositions(glitch) {
   const cx = 200,
     cy = 200;
-  const baseAngle = -90; // 北
-  const positions = [];
-  const radius = 130;
-  const offsets = [30, 58, 86, 114];
 
-  // 左列: Mから反時計回り（西側）
+  // Mは北固定。レーザーは北→南の縦線。
+  // xOffset: レーザー線からの左右の距離
+  // yPositions: 上(Mに近い)から下(Mから遠い)の4段
+  const xSpread = glitch === "mid" ? 30 : 110;
+  const yStart = 60;   // 最上段のY
+  const yGap = 70;     // 各段の間隔
+
+  const positions = [];
+
   for (let i = 0; i < 4; i++) {
-    const angle = ((baseAngle - offsets[i]) * Math.PI) / 180;
+    const y = yStart + yGap * i;
+    // 左列（西側）
     positions.push({
       id: `L${i}`,
       side: "left",
       index: i,
-      x: cx + radius * Math.cos(angle),
-      y: cy + radius * Math.sin(angle),
+      x: cx - xSpread,
+      y: y,
     });
-  }
-
-  // 右列: Mから時計回り（東側）
-  for (let i = 0; i < 4; i++) {
-    const angle = ((baseAngle + offsets[i]) * Math.PI) / 180;
+    // 右列（東側）
     positions.push({
       id: `R${i}`,
       side: "right",
       index: i,
-      x: cx + radius * Math.cos(angle),
-      y: cy + radius * Math.sin(angle),
+      x: cx + xSpread,
+      y: y,
     });
   }
 
@@ -316,7 +320,7 @@ function renderScenario(scenario) {
   );
 
   // Position markers
-  const positions = calcPositions();
+  const positions = calcPositions(scenario.glitch);
   const posGroup = $("#positions");
   posGroup.innerHTML = "";
 
