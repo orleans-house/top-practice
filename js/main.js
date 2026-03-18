@@ -112,40 +112,78 @@ function generatePartySymbols() {
   return party;
 }
 
+// 調整処理: 同じ記号が片側に被った場合、南側のプレイヤーが反対側へ移動
+// 「被った側の南の人」が反対側へ渡り、4:4を維持する
+function resolveAdjustedSides(party) {
+  const sides = {};
+  ROLES.forEach((role) => {
+    sides[role] = LEFT_GROUP.includes(role) ? "left" : "right";
+  });
+
+  // 各サイドで記号の重複をチェック
+  for (const side of ["left", "right"]) {
+    const group = side === "left" ? LEFT_GROUP : RIGHT_GROUP;
+    const symbolMembers = {};
+
+    group.forEach((role) => {
+      const sym = party[role];
+      if (!symbolMembers[sym]) symbolMembers[sym] = [];
+      symbolMembers[sym].push(role);
+    });
+
+    for (const [, members] of Object.entries(symbolMembers)) {
+      if (members.length === 2) {
+        // 被り発生: グループ内で南側（indexが大きい方）を特定
+        const idx0 = group.indexOf(members[0]);
+        const idx1 = group.indexOf(members[1]);
+        const southRole = idx0 > idx1 ? members[0] : members[1];
+        // 南側を反対側へ移動
+        sides[southRole] = side === "left" ? "right" : "left";
+      }
+    }
+  }
+
+  return sides;
+}
+
+function calcRolePosition(role, symbol, side, glitch) {
+  let posIndex;
+  if (glitch === "mid") {
+    posIndex = MID_ORDER[symbol];
+  } else {
+    posIndex =
+      side === "left" ? FAR_ORDER_LEFT[symbol] : FAR_ORDER_RIGHT[symbol];
+  }
+  const posId = `${side === "left" ? "L" : "R"}${posIndex}`;
+  return { posIndex, posId };
+}
+
 function generateScenario() {
   const playerRole = state.playerRole;
   const glitch = GLITCH_TYPES[Math.floor(Math.random() * 2)];
   const party = generatePartySymbols();
 
+  // 調整後のサイドを算出
+  const adjustedSides = resolveAdjustedSides(party);
+
   const playerSymbol = party[playerRole];
-  const side = LEFT_GROUP.includes(playerRole) ? "left" : "right";
+  const side = adjustedSides[playerRole];
+  const { posIndex, posId: correctId } = calcRolePosition(
+    playerRole,
+    playerSymbol,
+    side,
+    glitch
+  );
 
-  let posIndex;
-  if (glitch === "mid") {
-    posIndex = MID_ORDER[playerSymbol];
-  } else {
-    posIndex =
-      side === "left"
-        ? FAR_ORDER_LEFT[playerSymbol]
-        : FAR_ORDER_RIGHT[playerSymbol];
-  }
-
-  const correctId = `${side === "left" ? "L" : "R"}${posIndex}`;
+  // 調整が発生したか
+  const originalSide = LEFT_GROUP.includes(playerRole) ? "left" : "right";
+  const wasAdjusted = side !== originalSide;
 
   // 全員のポジション算出（回答後の表示用）
   const allAssignments = {};
   ROLES.forEach((role) => {
-    const s = LEFT_GROUP.includes(role) ? "left" : "right";
-    let idx;
-    if (glitch === "mid") {
-      idx = MID_ORDER[party[role]];
-    } else {
-      idx =
-        s === "left"
-          ? FAR_ORDER_LEFT[party[role]]
-          : FAR_ORDER_RIGHT[party[role]];
-    }
-    const posId = `${s === "left" ? "L" : "R"}${idx}`;
+    const s = adjustedSides[role];
+    const { posId } = calcRolePosition(role, party[role], s, glitch);
     if (!allAssignments[posId]) {
       allAssignments[posId] = [];
     }
@@ -161,6 +199,8 @@ function generateScenario() {
     posIndex,
     correctId,
     allAssignments,
+    adjustedSides,
+    wasAdjusted,
   };
 }
 
@@ -289,15 +329,18 @@ function handleAnswer(selectedId) {
   result.textContent = isCorrect ? "正解！" : "不正解…";
   result.className = isCorrect ? "correct" : "incorrect";
 
-  const sideName = scenario.side === "left" ? "左組" : "右組";
+  const sideName = scenario.side === "left" ? "左" : "右";
   const glitchName =
     scenario.glitch === "mid" ? "ミドル（近）" : "ファー（遠）";
+  const adjustNote = scenario.wasAdjusted
+    ? `<br><span style="color:var(--symbol-color)">※ 記号被りのため反対側へ調整</span>`
+    : "";
 
   $("#feedback-explanation").innerHTML = `
-    <strong>${scenario.playerRole}</strong> は <strong>${sideName}</strong> / ${scenario.playerSymbol}<br>
+    <strong>${scenario.playerRole}</strong> → <strong>${sideName}</strong>側 / ${scenario.playerSymbol}${adjustNote}<br>
     ${glitchName} → 上から ${scenario.posIndex + 1}番目<br>
     <span style="color:var(--text-secondary);font-size:0.8rem">
-      ${scenario.glitch === "far" && scenario.side === "right" ? "ファー右組は □△×○ の順（調整）" : "並び: ○×△□"}
+      ${scenario.glitch === "far" && scenario.side === "right" ? "ファー右は □△×○ の順（調整）" : "並び: ○×△□"}
     </span>
   `;
 }
