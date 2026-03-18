@@ -548,6 +548,29 @@ header h1 {
   display: block;
 }
 
+/* Phase label */
+.phase-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 8px;
+  letter-spacing: 0.1em;
+}
+
+/* Stack marker highlight */
+.party-member.has-stack {
+  background: rgba(200, 112, 112, 0.15);
+  outline: 1px solid var(--accent-danger);
+}
+
+.party-member.has-stack .member-role::after {
+  content: " 頭割";
+  font-size: 0.7rem;
+  color: var(--accent-danger);
+  font-weight: normal;
+}
+
 /* ========================================
    Responsive: mobile stacks vertically
    ======================================== */

@@ -9,28 +9,40 @@ const GLITCH_TYPES = ["mid", "far"];
 const LEFT_GROUP = ["H1", "MT", "D1", "D3"];
 const RIGHT_GROUP = ["H2", "ST", "D2", "D4"];
 
+// 列ペア（左右の対応）
+const ROW_PAIRS = [
+  ["H1", "H2"],
+  ["MT", "ST"],
+  ["D1", "D2"],
+  ["D3", "D4"],
+];
+
 // ミドル時のシンボル→位置順序（上から: 0=top, 3=bottom）
 const MID_ORDER = { "○": 0, "×": 1, "△": 2, "□": 3 };
 
 // ファー時のシンボル→位置順序
-// 左組: ○×△□（ミドルと同じ）
-// 右組: □△×○（反転 — 右組が調整）
 const FAR_ORDER_LEFT = { "○": 0, "×": 1, "△": 2, "□": 3 };
 const FAR_ORDER_RIGHT = { "○": 3, "×": 2, "△": 1, "□": 0 };
 
-// M方角は北固定
-const M_DIRECTION = "N";
+// 頭割り: 基準北固定
+// 左組 → 西(W)、右組 → ミドル:南(S) / ファー:東(E)
+const STACK_POSITIONS = {
+  left: "W",
+  right_mid: "S",
+  right_far: "E",
+};
 
 // ========================================
 // State
 // ========================================
 let state = {
   screen: "menu",
-  playerRole: null, // メニューで選択、以後固定
+  playerRole: null,
   correct: 0,
   total: 0,
   scenario: null,
   answered: false,
+  phase: "playstation", // "playstation" or "stack"
   timer: null,
   urgentTimer: null,
 };
@@ -134,23 +146,21 @@ function createSymbolSVG(symbol, size = 20) {
 }
 
 // ========================================
-// Position geometry (M北固定)
+// Position geometry
 // ========================================
 
-function calcPositions() {
+// プレステ散開用（8ポジション: 左4 + 右4）
+function calcPlaystationPositions() {
   const cx = 200;
   const cy = 200;
   const xSpread = 70;
   const yGap = 70;
-  // 2と3の間が中心(cy)になるように: 0,1 が上、2,3 が下
-  // 中心 = (pos1 + pos2) / 2 → pos1 = cy - yGap/2, pos0 = cy - yGap*1.5
   const yStart = cy - yGap * 1.5;
 
   const positions = [];
 
   for (let i = 0; i < 4; i++) {
     const y = yStart + yGap * i;
-    // 左列（西側）
     positions.push({
       id: `L${i}`,
       side: "left",
@@ -158,7 +168,6 @@ function calcPositions() {
       x: cx - xSpread,
       y: y,
     });
-    // 右列（東側）
     positions.push({
       id: `R${i}`,
       side: "right",
@@ -169,6 +178,18 @@ function calcPositions() {
   }
 
   return positions;
+}
+
+// 頭割り用（3ポジション: W, S, E — 基準点が北）
+function calcStackPositions() {
+  const cx = 200;
+  const cy = 200;
+  const r = 120;
+  return [
+    { id: "W", label: "西", x: cx - r, y: cy },
+    { id: "S", label: "南", x: cx, y: cy + r },
+    { id: "E", label: "東", x: cx + r, y: cy },
+  ];
 }
 
 // ========================================
@@ -184,15 +205,13 @@ function generatePartySymbols() {
   return party;
 }
 
-// 調整処理: 同じ記号が片側に被った場合、南側のプレイヤーが反対側へ移動
-// 「被った側の南の人」が反対側へ渡り、4:4を維持する
+// プレステ調整: 同じ記号が片側に被った場合
 function resolveAdjustedSides(party) {
   const sides = {};
   ROLES.forEach((role) => {
     sides[role] = LEFT_GROUP.includes(role) ? "left" : "right";
   });
 
-  // 各サイドで記号の重複をチェック
   for (const side of ["left", "right"]) {
     const group = side === "left" ? LEFT_GROUP : RIGHT_GROUP;
     const symbolMembers = {};
@@ -205,14 +224,40 @@ function resolveAdjustedSides(party) {
 
     for (const [, members] of Object.entries(symbolMembers)) {
       if (members.length === 2) {
-        // 被り発生: グループ内で南側（indexが大きい方）を特定
         const idx0 = group.indexOf(members[0]);
         const idx1 = group.indexOf(members[1]);
         const southRole = idx0 > idx1 ? members[0] : members[1];
-        // 南側を反対側へ移動
         sides[southRole] = side === "left" ? "right" : "left";
       }
     }
+  }
+
+  return sides;
+}
+
+// 頭割り調整: 2人の頭割りが同じ側に被った場合、南側と列ペアが交代
+function resolveStackSides(stackMarkers) {
+  const sides = {};
+  ROLES.forEach((role) => {
+    sides[role] = LEFT_GROUP.includes(role) ? "left" : "right";
+  });
+
+  const s0 = sides[stackMarkers[0]];
+  const s1 = sides[stackMarkers[1]];
+
+  if (s0 === s1) {
+    // 同じ側に被った → 南側を特定
+    const group = s0 === "left" ? LEFT_GROUP : RIGHT_GROUP;
+    const idx0 = group.indexOf(stackMarkers[0]);
+    const idx1 = group.indexOf(stackMarkers[1]);
+    const southMarker = idx0 > idx1 ? stackMarkers[0] : stackMarkers[1];
+
+    // 南側と列ペアを交代
+    const pair = ROW_PAIRS.find((p) => p.includes(southMarker));
+    const partner = pair[0] === southMarker ? pair[1] : pair[0];
+
+    sides[southMarker] = sides[southMarker] === "left" ? "right" : "left";
+    sides[partner] = sides[partner] === "left" ? "right" : "left";
   }
 
   return sides;
@@ -235,44 +280,65 @@ function generateScenario() {
   const glitch = GLITCH_TYPES[Math.floor(Math.random() * 2)];
   const party = generatePartySymbols();
 
-  // 調整後のサイドを算出
+  // --- プレステフェーズ ---
   const adjustedSides = resolveAdjustedSides(party);
 
   const playerSymbol = party[playerRole];
-  const side = adjustedSides[playerRole];
+  const psSide = adjustedSides[playerRole];
   const { posIndex, posId: correctId } = calcRolePosition(
     playerRole,
     playerSymbol,
-    side,
+    psSide,
     glitch
   );
 
-  // 調整が発生したか
   const originalSide = LEFT_GROUP.includes(playerRole) ? "left" : "right";
-  const wasAdjusted = side !== originalSide;
+  const wasAdjusted = psSide !== originalSide;
 
-  // 全員のポジション算出（回答後の表示用）
   const allAssignments = {};
   ROLES.forEach((role) => {
     const s = adjustedSides[role];
     const { posId } = calcRolePosition(role, party[role], s, glitch);
-    if (!allAssignments[posId]) {
-      allAssignments[posId] = [];
-    }
+    if (!allAssignments[posId]) allAssignments[posId] = [];
     allAssignments[posId].push(role);
   });
+
+  // --- 頭割りフェーズ ---
+  const shuffledRoles = shuffle([...ROLES]);
+  const stackMarkers = [shuffledRoles[0], shuffledRoles[1]];
+
+  const stackSides = resolveStackSides(stackMarkers);
+  const stackPlayerSide = stackSides[playerRole];
+
+  // 正解の頭割りポジション
+  let stackCorrectId;
+  if (stackPlayerSide === "left") {
+    stackCorrectId = "W";
+  } else {
+    stackCorrectId = glitch === "mid" ? "S" : "E";
+  }
+
+  const stackWasAdjusted =
+    stackPlayerSide !== (LEFT_GROUP.includes(playerRole) ? "left" : "right");
 
   return {
     playerRole,
     glitch,
     party,
     playerSymbol,
-    side,
+    // プレステ
+    psSide,
     posIndex,
     correctId,
     allAssignments,
     adjustedSides,
     wasAdjusted,
+    // 頭割り
+    stackMarkers,
+    stackSides,
+    stackPlayerSide,
+    stackCorrectId,
+    stackWasAdjusted,
   };
 }
 
@@ -280,42 +346,45 @@ function generateScenario() {
 // Rendering
 // ========================================
 
-function renderPartyList(scenario) {
-  const { party, playerRole } = scenario;
+function renderPartyList(scenario, highlightStack) {
+  const { party, playerRole, stackMarkers } = scenario;
 
   [...LEFT_GROUP, ...RIGHT_GROUP].forEach((role) => {
     const el = $(`.party-member[data-role="${role}"]`);
     const symEl = el.querySelector(".member-symbol");
     const sym = party[role];
-    // テキストをSVGアイコンに置換
     symEl.innerHTML = "";
     symEl.appendChild(createSymbolSVG(sym, 22));
     symEl.dataset.symbol = sym;
     el.classList.toggle("is-you", role === playerRole);
+    el.classList.toggle(
+      "has-stack",
+      highlightStack && stackMarkers.includes(role)
+    );
   });
 }
 
-function renderScenario(scenario) {
+function renderPlaystationPhase(scenario) {
   // Info cards
   $("#info-role .info-value").textContent = scenario.playerRole;
-
   const glitchCard = $("#info-glitch");
   glitchCard.querySelector(".info-value").textContent =
     scenario.glitch === "mid" ? "ミドル（近）" : "ファー（遠）";
   glitchCard.className = `info-card ${scenario.glitch}`;
 
-  // Party list
-  renderPartyList(scenario);
+  // Phase label
+  $("#phase-label").textContent = "プレステ散開";
+
+  // Party list（頭割りマーカーは非表示）
+  renderPartyList(scenario, false);
 
   // OmegaM（北固定）
-  const mPos = { x: 200, y: 40 };
-  $("#omega-m-marker").setAttribute(
-    "transform",
-    `translate(${mPos.x},${mPos.y})`
-  );
+  $("#omega-m-marker").setAttribute("transform", "translate(200,40)");
+  $("#omega-m-marker").style.display = "";
+  $("#omega-f-marker").style.display = "";
 
   // Position markers
-  const positions = calcPositions();
+  const positions = calcPlaystationPositions();
   const posGroup = $("#positions");
   posGroup.innerHTML = "";
 
@@ -341,7 +410,6 @@ function renderScenario(scenario) {
     label.setAttribute("y", pos.y);
     label.textContent = `${pos.index + 1}`;
 
-    // ロールラベル（回答後に表示）
     const roleLabel = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "text"
@@ -360,11 +428,75 @@ function renderScenario(scenario) {
     posGroup.appendChild(g);
   });
 
-  // Hide feedback
   $("#feedback").classList.add("hidden");
   state.answered = false;
+  state.phase = "playstation";
 
-  // タイマー開始
+  startTimer();
+}
+
+function renderStackPhase(scenario) {
+  // Phase label
+  $("#phase-label").textContent = "頭割り";
+
+  // Party list（頭割りマーカー表示）
+  renderPartyList(scenario, true);
+
+  // ボスを非表示にして基準点を表示
+  $("#omega-m-marker").style.display = "none";
+  $("#omega-f-marker").style.display = "none";
+
+  // Position markers（W, S, E の3択）
+  const positions = calcStackPositions();
+  const posGroup = $("#positions");
+  posGroup.innerHTML = "";
+
+  // 基準点を北に表示
+  const refMarker = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "g"
+  );
+  refMarker.innerHTML = `
+    <circle cx="200" cy="60" r="14" fill="rgba(200,181,96,0.2)" stroke="var(--accent-gold)" stroke-width="2"/>
+    <text x="200" y="60" text-anchor="middle" dominant-baseline="central" fill="var(--accent-gold)" font-size="11" font-weight="bold">基準</text>
+  `;
+  posGroup.appendChild(refMarker);
+
+  positions.forEach((pos) => {
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.classList.add("position-marker");
+    g.dataset.posId = pos.id;
+
+    const circle = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle"
+    );
+    circle.classList.add("pos-circle");
+    circle.setAttribute("cx", pos.x);
+    circle.setAttribute("cy", pos.y);
+    circle.style.r = "28px";
+
+    const label = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "text"
+    );
+    label.classList.add("pos-label");
+    label.setAttribute("x", pos.x);
+    label.setAttribute("y", pos.y);
+    label.textContent = pos.label;
+    label.style.fontSize = "14px";
+
+    g.appendChild(circle);
+    g.appendChild(label);
+
+    g.addEventListener("click", () => handleStackAnswer(pos.id));
+    posGroup.appendChild(g);
+  });
+
+  $("#feedback").classList.add("hidden");
+  state.answered = false;
+  state.phase = "stack";
+
   startTimer();
 }
 
@@ -376,7 +508,7 @@ function renderScore() {
 // ========================================
 // Timer
 // ========================================
-const TIME_LIMIT = 3000; // 3秒
+const TIME_LIMIT = 3000;
 
 function startTimer() {
   stopTimer();
@@ -385,7 +517,6 @@ function startTimer() {
   bar.classList.remove("urgent", "stopped");
   bar.style.width = "100%";
 
-  // 次フレームでアニメーション開始（CSSトランジション発火用）
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       bar.style.transition = `width ${TIME_LIMIT}ms linear`;
@@ -393,15 +524,17 @@ function startTimer() {
     });
   });
 
-  // 残り1秒で赤くする
   state.urgentTimer = setTimeout(() => {
     bar.classList.add("urgent");
   }, TIME_LIMIT - 1000);
 
-  // タイムアウト
   state.timer = setTimeout(() => {
     if (!state.answered) {
-      handleTimeout();
+      if (state.phase === "playstation") {
+        handleTimeout();
+      } else {
+        handleStackTimeout();
+      }
     }
   }, TIME_LIMIT);
 }
@@ -421,42 +554,49 @@ function stopTimer() {
 }
 
 // ========================================
-// Answer handling
+// Answer handling — プレステ
 // ========================================
-function revealPositions(selectedId) {
-  const scenario = state.scenario;
-  const isCorrect = selectedId && selectedId === scenario.correctId;
-
+function revealPositions(selectedId, correctId) {
   $$(".position-marker").forEach((g) => {
     g.classList.add("disabled", "reveal");
     const id = g.dataset.posId;
-    if (id === selectedId && isCorrect) {
+    if (id === selectedId && id === correctId) {
       g.classList.add("correct");
-    } else if (id === selectedId && !isCorrect) {
+    } else if (id === selectedId && id !== correctId) {
       g.classList.add("incorrect");
     }
-    if (id === scenario.correctId && !isCorrect) {
+    if (id === correctId && id !== selectedId) {
       g.classList.add("answer");
     }
   });
 }
 
-function showFeedback(scenario) {
-  const sideName = scenario.side === "left" ? "左" : "右";
+function showPlaystationFeedback(scenario, isCorrect, isTimeout) {
+  const sideName = scenario.psSide === "left" ? "左" : "右";
   const glitchName =
     scenario.glitch === "mid" ? "ミドル（近）" : "ファー（遠）";
   const adjustNote = scenario.wasAdjusted
     ? `<br><span style="color:var(--symbol-color)">※ 記号被りのため反対側へ調整</span>`
     : "";
 
+  const result = $("#feedback-result");
+  if (isTimeout) {
+    result.textContent = "時間切れ…";
+    result.className = "timeout";
+  } else {
+    result.textContent = isCorrect ? "正解！" : "不正解…";
+    result.className = isCorrect ? "correct" : "incorrect";
+  }
+
   $("#feedback-explanation").innerHTML = `
     <strong>${scenario.playerRole}</strong> → <strong>${sideName}</strong>側 / ${scenario.playerSymbol}${adjustNote}<br>
     ${glitchName} → 上から ${scenario.posIndex + 1}番目<br>
     <span style="color:var(--text-secondary);font-size:0.8rem">
-      ${scenario.glitch === "far" && scenario.side === "right" ? "ファー右は □△×○ の順（調整）" : "並び: ○×△□"}
+      ${scenario.glitch === "far" && scenario.psSide === "right" ? "ファー右は □△×○ の順（調整）" : "並び: ○×△□"}
     </span>
   `;
 
+  $("#next-btn").textContent = "頭割りへ →";
   $("#feedback").classList.remove("hidden");
 }
 
@@ -471,13 +611,8 @@ function handleAnswer(selectedId) {
   if (isCorrect) state.correct++;
 
   renderScore();
-  revealPositions(selectedId);
-
-  const result = $("#feedback-result");
-  result.textContent = isCorrect ? "正解！" : "不正解…";
-  result.className = isCorrect ? "correct" : "incorrect";
-
-  showFeedback(scenario);
+  revealPositions(selectedId, scenario.correctId);
+  showPlaystationFeedback(scenario, isCorrect, false);
 }
 
 function handleTimeout() {
@@ -486,31 +621,83 @@ function handleTimeout() {
   stopTimer();
 
   renderScore();
-  revealPositions(null);
+  revealPositions(null, state.scenario.correctId);
+  showPlaystationFeedback(state.scenario, false, true);
+}
+
+// ========================================
+// Answer handling — 頭割り
+// ========================================
+function showStackFeedback(scenario, isCorrect, isTimeout) {
+  const sideName = scenario.stackPlayerSide === "left" ? "左組" : "右組";
+  const dirName = { W: "西", S: "南", E: "東" }[scenario.stackCorrectId];
+  const glitchName =
+    scenario.glitch === "mid" ? "ミドル→南" : "ファー→東";
+  const adjustNote = scenario.stackWasAdjusted
+    ? `<br><span style="color:var(--symbol-color)">※ 頭割り被りのため反対側へ調整</span>`
+    : "";
+
+  const markerNames = scenario.stackMarkers.join(", ");
 
   const result = $("#feedback-result");
-  result.textContent = "時間切れ…";
-  result.className = "timeout";
+  if (isTimeout) {
+    result.textContent = "時間切れ…";
+    result.className = "timeout";
+  } else {
+    result.textContent = isCorrect ? "正解！" : "不正解…";
+    result.className = isCorrect ? "correct" : "incorrect";
+  }
 
-  showFeedback(state.scenario);
+  $("#feedback-explanation").innerHTML = `
+    頭割り: ${markerNames}${adjustNote}<br>
+    <strong>${scenario.playerRole}</strong> → <strong>${sideName}</strong> → <strong>${dirName}</strong><br>
+    <span style="color:var(--text-secondary);font-size:0.8rem">
+      左組=西 / 右組=${glitchName}
+    </span>
+  `;
+
+  $("#next-btn").textContent = "次の問題";
+  $("#feedback").classList.remove("hidden");
+}
+
+function handleStackAnswer(selectedId) {
+  if (state.answered) return;
+  state.answered = true;
+  state.total++;
+  stopTimer();
+
+  const scenario = state.scenario;
+  const isCorrect = selectedId === scenario.stackCorrectId;
+  if (isCorrect) state.correct++;
+
+  renderScore();
+  revealPositions(selectedId, scenario.stackCorrectId);
+  showStackFeedback(scenario, isCorrect, false);
+}
+
+function handleStackTimeout() {
+  state.answered = true;
+  state.total++;
+  stopTimer();
+
+  renderScore();
+  revealPositions(null, state.scenario.stackCorrectId);
+  showStackFeedback(state.scenario, false, true);
 }
 
 // ========================================
 // Event listeners
 // ========================================
 function init() {
-  // ロール選択
   $$(".role-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       $$(".role-btn").forEach((b) => b.classList.remove("selected"));
       btn.classList.add("selected");
       state.playerRole = btn.dataset.role;
-      // ギミックボタンを有効化
       $$(".mechanic-btn").forEach((b) => (b.disabled = false));
     });
   });
 
-  // ギミック選択
   $$(".mechanic-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (!state.playerRole) return;
@@ -523,7 +710,16 @@ function init() {
     stopTimer();
     showScreen("menu");
   });
-  $("#next-btn").addEventListener("click", startNewQuestion);
+
+  $("#next-btn").addEventListener("click", () => {
+    if (state.phase === "playstation") {
+      // プレステ回答後 → 頭割りフェーズへ
+      renderStackPhase(state.scenario);
+    } else {
+      // 頭割り回答後 → 次の問題
+      startNewQuestion();
+    }
+  });
 
   $("#reset-score-btn").addEventListener("click", () => {
     state.correct = 0;
@@ -533,14 +729,18 @@ function init() {
 
   document.addEventListener("keydown", (e) => {
     if (state.screen === "quiz" && state.answered && e.key === "Enter") {
-      startNewQuestion();
+      if (state.phase === "playstation") {
+        renderStackPhase(state.scenario);
+      } else {
+        startNewQuestion();
+      }
     }
   });
 }
 
 function startNewQuestion() {
   state.scenario = generateScenario();
-  renderScenario(state.scenario);
+  renderPlaystationPhase(state.scenario);
 }
 
 init();
