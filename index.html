@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TOP ギミック練習</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>絶オメガ検証戦 ギミック練習</h1>
+    </header>
+
+    <!-- メカニクス選択画面 -->
+    <div id="menu-screen" class="screen active">
+      <h2>練習するギミックを選択</h2>
+      <div class="mechanic-list">
+        <button class="mechanic-btn" data-mechanic="party-synergy">
+          <span class="phase-tag">P2</span>
+          <span class="mechanic-name">連携プログラムPT</span>
+          <span class="mechanic-sub">リリードール式</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- クイズ画面 -->
+    <div id="quiz-screen" class="screen">
+      <div class="quiz-header">
+        <button id="back-btn" class="icon-btn" title="戻る">← 戻る</button>
+        <div id="score-display">
+          <span id="score-correct">0</span> / <span id="score-total">0</span>
+        </div>
+        <button id="reset-score-btn" class="icon-btn" title="スコアリセット">リセット</button>
+      </div>
+
+      <div class="quiz-body">
+        <!-- 状況表示 -->
+        <div id="scenario-info">
+          <div class="info-row">
+            <div class="info-card" id="info-role">
+              <div class="info-label">ロール</div>
+              <div class="info-value">MT</div>
+            </div>
+            <div class="info-card" id="info-glitch">
+              <div class="info-label">プログラム</div>
+              <div class="info-value">近</div>
+            </div>
+            <div class="info-card" id="info-symbol">
+              <div class="info-label">プレステ</div>
+              <div class="info-value symbol">○</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- アリーナ -->
+        <div id="arena-container">
+          <svg id="arena" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+            <!-- 背景の円（アリーナ） -->
+            <circle cx="200" cy="200" r="180" class="arena-floor"/>
+            <!-- 方角マーカー -->
+            <text x="200" y="28" class="cardinal" id="cardinal-n">N</text>
+            <text x="380" y="205" class="cardinal" id="cardinal-e">E</text>
+            <text x="200" y="392" class="cardinal" id="cardinal-s">S</text>
+            <text x="20" y="205" class="cardinal" id="cardinal-w">W</text>
+            <!-- オメガM表示 -->
+            <g id="omega-m-marker" class="boss-marker">
+              <circle r="18" class="boss-circle"/>
+              <text class="boss-text" text-anchor="middle" dominant-baseline="central">M</text>
+            </g>
+            <!-- 中央のオメガF -->
+            <g id="omega-f-marker" class="boss-marker" transform="translate(200,200)">
+              <circle r="14" class="boss-circle-f"/>
+              <text class="boss-text-f" text-anchor="middle" dominant-baseline="central">F</text>
+            </g>
+            <!-- クリック可能なポジション（8個） -->
+            <g id="positions"></g>
+          </svg>
+        </div>
+
+        <!-- フィードバック -->
+        <div id="feedback" class="hidden">
+          <div id="feedback-result"></div>
+          <div id="feedback-explanation"></div>
+          <button id="next-btn">次の問題</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,365 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-card: #21262d;
+  --border: #30363d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --accent: #58a6ff;
+  --correct: #3fb950;
+  --incorrect: #f85149;
+  --symbol-color: #ffa657;
+  --mid-color: #79c0ff;
+  --far-color: #d2a8ff;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 600px;
+  padding: 16px;
+}
+
+header h1 {
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 12px 0;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+/* Screen management */
+.screen {
+  display: none;
+}
+.screen.active {
+  display: block;
+}
+
+/* Menu screen */
+#menu-screen h2 {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.mechanic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mechanic-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  text-align: left;
+  font-size: 1rem;
+}
+
+.mechanic-btn:hover {
+  border-color: var(--accent);
+}
+
+.phase-tag {
+  background: var(--accent);
+  color: var(--bg-primary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.mechanic-name {
+  font-weight: bold;
+}
+
+.mechanic-sub {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-left: auto;
+}
+
+/* Quiz header */
+.quiz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.icon-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.icon-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+#score-display {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--text-secondary);
+}
+
+#score-correct {
+  color: var(--correct);
+}
+
+/* Scenario info */
+.info-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.info-card {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.info-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.info-value.symbol {
+  color: var(--symbol-color);
+  font-size: 1.5rem;
+}
+
+.info-card.mid .info-value {
+  color: var(--mid-color);
+}
+
+.info-card.far .info-value {
+  color: var(--far-color);
+}
+
+/* Arena */
+#arena-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+#arena {
+  width: 100%;
+  max-width: 400px;
+}
+
+.arena-floor {
+  fill: #1a1f2e;
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.cardinal {
+  fill: var(--text-secondary);
+  font-size: 14px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.boss-circle {
+  fill: #3b2e1a;
+  stroke: #f0a040;
+  stroke-width: 2;
+}
+
+.boss-text {
+  fill: #f0a040;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.boss-circle-f {
+  fill: #1a2e3b;
+  stroke: #60a0f0;
+  stroke-width: 2;
+}
+
+.boss-text-f {
+  fill: #60a0f0;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Position markers */
+.position-marker {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.position-marker:hover .pos-circle {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.pos-circle {
+  fill: var(--bg-card);
+  stroke: var(--border);
+  stroke-width: 2;
+  r: 20;
+}
+
+.pos-label {
+  fill: var(--text-secondary);
+  font-size: 11px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* Position marker states after answer */
+.position-marker.correct .pos-circle {
+  fill: #1a3a1a;
+  stroke: var(--correct);
+  stroke-width: 3;
+}
+
+.position-marker.correct .pos-label {
+  fill: var(--correct);
+}
+
+.position-marker.incorrect .pos-circle {
+  fill: #3a1a1a;
+  stroke: var(--incorrect);
+  stroke-width: 3;
+}
+
+.position-marker.incorrect .pos-label {
+  fill: var(--incorrect);
+}
+
+.position-marker.answer .pos-circle {
+  fill: #1a2a1a;
+  stroke: var(--correct);
+  stroke-width: 3;
+  stroke-dasharray: 4 2;
+}
+
+.position-marker.answer .pos-label {
+  fill: var(--correct);
+}
+
+.position-marker.disabled {
+  pointer-events: none;
+}
+
+/* Role labels on positions */
+.pos-role-label {
+  fill: var(--text-primary);
+  font-size: 10px;
+  text-anchor: middle;
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.position-marker.correct .pos-role-label,
+.position-marker.incorrect .pos-role-label,
+.position-marker.answer .pos-role-label,
+.position-marker.reveal .pos-role-label {
+  opacity: 1;
+}
+
+/* Feedback */
+#feedback {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+#feedback.hidden {
+  display: none;
+}
+
+#feedback-result {
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+#feedback-result.correct {
+  color: var(--correct);
+}
+
+#feedback-result.incorrect {
+  color: var(--incorrect);
+}
+
+#feedback-explanation {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+#next-btn {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 32px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+#next-btn:hover {
+  opacity: 0.85;
+}
+
+/* Group labels on arena */
+.group-label {
+  fill: var(--text-secondary);
+  font-size: 12px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  opacity: 0.6;
+}
